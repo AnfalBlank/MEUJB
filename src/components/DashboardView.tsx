@@ -285,17 +285,28 @@ export function DashboardView({
             <button
               type="button"
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-              title="Unduh data terpilih sebagai CSV"
+              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              title="Unduh data terpilih sebagai CSV resmi"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-slate-600" />
               <span>Export CSV</span>
             </button>
 
             <button
               type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-colors cursor-pointer"
+              title="Cetak atau simpan Laporan Resmi PDF berstandar KOP PT. Usaha Jayamas Bhakti"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Cetak Laporan PDF</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Kembalikan semua filter ke awal"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>

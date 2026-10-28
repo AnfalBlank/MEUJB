@@ -50,7 +50,7 @@ export function ExecutiveDashboardView({
 
   // Global Filters
   const [selectedSubdiv, setSelectedSubdiv] = useState<string>("ALL");
-  const [selectedYear, setSelectedYear] = useState<string>("2026");
+  const [selectedYear, setSelectedYear] = useState<string>("ALL");
 
   // Chart interactivity states
   const [hoveredSubdivSlice, setHoveredSubdivSlice] = useState<string | null>(null);
@@ -231,7 +231,7 @@ export function ExecutiveDashboardView({
   const marketingLeaderboard = useMemo(() => {
     const map: Record<string, { name: string; jobsCount: number; doneCount: number; totalValue: number }> = {};
     filteredJobs.forEach((j) => {
-      const mName = j.marketing || "Bagus Pratama";
+      const mName = j.marketing?.trim() || "Tanpa Marketing";
       if (!map[mName]) {
         map[mName] = { name: mName, jobsCount: 0, doneCount: 0, totalValue: 0 };
       }

@@ -195,7 +195,10 @@ export function OfficialReportModal({
         </div>
 
         {/* Printable Paper Canvas */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 print:overflow-visible print:p-0 bg-white text-slate-900 font-sans">
+        <div 
+          id="official-report-printable-area"
+          className="official-printable-doc flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 print:overflow-visible print:p-0 bg-white text-slate-900 font-sans"
+        >
           
           {/* 1. Official Letterhead (KOP SURAT) */}
           <div className="border-b-2 border-slate-900 pb-3">
@@ -209,6 +212,7 @@ export function OfficialReportModal({
                     height={80}
                     className="object-contain"
                     priority
+                    unoptimized
                   />
                 </div>
                 <div>
@@ -418,7 +422,7 @@ export function OfficialReportModal({
           </div>
 
           {/* 5. Lembar Pengesahan Resmi (Signatures) */}
-          <div className="pt-6 border-t border-slate-200 grid grid-cols-3 gap-6 text-center text-xs text-slate-800">
+          <div className="official-signatures pt-6 border-t border-slate-200 grid grid-cols-3 gap-6 text-center text-xs text-slate-800">
             <div>
               <p className="text-slate-500 mb-16">Dibuat Oleh,</p>
               <p className="font-bold border-b border-slate-400 inline-block px-4 pb-0.5">
