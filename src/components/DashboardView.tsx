@@ -36,7 +36,6 @@ import { WorkOrderJob, SubDivision, JobStatus, Technician } from "@/types";
 import { MAIN_SUB_DIVISIONS } from "@/data/initialData";
 import { formatRupiah, calcPercentage, formatDateIndo, calculateDurationDays, formatDateRange, isJobOverdue } from "@/utils/formatters";
 import { exportOfficialCsv } from "@/utils/exportCsv";
-import { OfficialReportModal } from "@/components/OfficialReportModal";
 
 interface DashboardViewProps {
   jobs: WorkOrderJob[];
@@ -46,6 +45,8 @@ interface DashboardViewProps {
   onDeleteJob: (id: string) => void;
   onOpenSubdivModal: (subdiv: SubDivision) => void;
   onStatusChange?: (id: string, newStatus: JobStatus) => void;
+  onOpenReportModal?: () => void;
+  onOpenCsvModal?: () => void;
 }
 
 type SortField = "docNumber" | "date" | "customer" | "subdiv" | "status" | "kasbonUsed";
@@ -58,10 +59,10 @@ export function DashboardView({
   onEditJob,
   onDeleteJob,
   onOpenSubdivModal,
-  onStatusChange
+  onStatusChange,
+  onOpenReportModal,
+  onOpenCsvModal,
 }: DashboardViewProps) {
-  // Official Report Modal State
-  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
 
   // Client Date State to guarantee zero SSR hydration mismatch
   const [clientTodayStr, setClientTodayStr] = useState<string>("");
@@ -284,9 +285,9 @@ export function DashboardView({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleExportCSV}
+              onClick={() => onOpenCsvModal ? onOpenCsvModal() : handleExportCSV()}
               className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-              title="Unduh data terpilih sebagai CSV resmi"
+              title="Unduh data terpilih sebagai CSV resmi interaktif"
             >
               <Download className="w-3.5 h-3.5 text-slate-600" />
               <span>Export CSV</span>
@@ -294,7 +295,7 @@ export function DashboardView({
 
             <button
               type="button"
-              onClick={() => setIsReportModalOpen(true)}
+              onClick={() => onOpenReportModal && onOpenReportModal()}
               className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-colors cursor-pointer"
               title="Cetak atau simpan Laporan Resmi PDF berstandar KOP PT. Usaha Jayamas Bhakti"
             >
@@ -918,17 +919,17 @@ export function DashboardView({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleExportCSV}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-              title="Unduh laporan CSV rapi dengan metadata resmi dan encoding UTF-8 Excel"
+              onClick={() => onOpenCsvModal ? onOpenCsvModal() : handleExportCSV()}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+              title="Unduh laporan CSV rapi dengan opsi delimiter dan preview interaktif"
             >
               <Download className="w-3.5 h-3.5 text-blue-400" />
               <span>Ekspor CSV Resmi</span>
             </button>
             <button
               type="button"
-              onClick={() => setIsReportModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+              onClick={() => onOpenReportModal && onOpenReportModal()}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
               title="Cetak atau simpan Laporan Resmi PDF berstandar kop surat PT. Usaha Jayamas Bhakti"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -1179,13 +1180,6 @@ export function DashboardView({
           </table>
         </div>
       </div>
-
-      {/* Modal Cetak Laporan Resmi PDF */}
-      <OfficialReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        jobs={filteredJobs}
-      />
     </div>
   );
 }

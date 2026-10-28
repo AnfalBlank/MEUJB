@@ -20,7 +20,8 @@ import {
   Layers,
   ChevronRight,
   ShieldCheck,
-  Building2
+  Building2,
+  FileSpreadsheet
 } from "lucide-react";
 import { WorkOrderJob, Technician, SubDivision } from "@/types";
 import { ALL_SUB_DIVISIONS } from "@/data/initialData";
@@ -30,12 +31,12 @@ import {
   calcPercentage, 
   calculateDurationDays 
 } from "@/utils/formatters";
-import { OfficialReportModal } from "@/components/OfficialReportModal";
 
 interface ExecutiveDashboardViewProps {
   jobs: WorkOrderJob[];
   teamMembers: Technician[];
   onOpenReportModal?: () => void;
+  onOpenCsvModal?: () => void;
   onOpenJobDetail?: (job: WorkOrderJob) => void;
 }
 
@@ -43,10 +44,9 @@ export function ExecutiveDashboardView({
   jobs,
   teamMembers,
   onOpenReportModal,
+  onOpenCsvModal,
   onOpenJobDetail,
 }: ExecutiveDashboardViewProps) {
-  // Modal State
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Global Filters
   const [selectedSubdiv, setSelectedSubdiv] = useState<string>("ALL");
@@ -344,13 +344,22 @@ export function ExecutiveDashboardView({
               </select>
             </div>
 
+            {/* Export CSV Button */}
+            <button
+              onClick={onOpenCsvModal}
+              className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Ekspor CSV</span>
+            </button>
+
             {/* Official Report Button */}
             <button
-              onClick={() => onOpenReportModal ? onOpenReportModal() : setIsReportModalOpen(true)}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-2 transition-colors shadow-xs shrink-0"
+              onClick={onOpenReportModal}
+              className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Ekspor Laporan PDF</span>
+              <span>Cetak Laporan PDF</span>
             </button>
           </div>
         </div>
@@ -1049,13 +1058,6 @@ export function ExecutiveDashboardView({
         </div>
 
       </div>
-
-      {/* Official Report Modal for PDF Export */}
-      <OfficialReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        jobs={filteredJobs}
-      />
     </div>
   );
 }

@@ -51,8 +51,9 @@ html, body {
     print-color-adjust: exact !important;
   }
 
-  /* Sembunyikan elemen web umum (header, footer, navigasi, form controls) */
+  /* Sembunyikan elemen web aplikasi (header, main dashboard, footer, dsb) */
   header, 
+  main,
   footer, 
   nav, 
   button, 
@@ -64,12 +65,8 @@ html, body {
     display: none !important;
   }
 
-  /* Sembunyikan main dashboard saat modal cetak dibuka */
-  body:has(#official-report-printable-area) main {
-    display: none !important;
-  }
-
   /* Atur container modal print agar menjadi dokumen kertas datar */
+  .official-report-modal-root,
   .fixed.inset-0 {
     position: static !important;
     background: transparent !important;
@@ -77,8 +74,11 @@ html, body {
     margin: 0 !important;
     overflow: visible !important;
     display: block !important;
+    inset: auto !important;
+    backdrop-filter: none !important;
   }
 
+  .official-report-modal-root > div,
   .fixed.inset-0 > div {
     max-width: 100% !important;
     max-height: none !important;
@@ -87,12 +87,15 @@ html, body {
     border-radius: 0 !important;
     overflow: visible !important;
     padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
   }
 
   /* Area Dokumen Resmi Cetak */
   #official-report-printable-area,
   .official-printable-doc {
     display: block !important;
+    visibility: visible !important;
     position: static !important;
     width: 100% !important;
     margin: 0 !important;
@@ -102,6 +105,10 @@ html, body {
     box-shadow: none !important;
     border: none !important;
     overflow: visible !important;
+  }
+
+  #official-report-printable-area * {
+    visibility: visible !important;
   }
 
   /* Tabel dokumen resmi */

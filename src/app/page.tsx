@@ -12,6 +12,8 @@ import { ExecutiveDashboardView } from "@/components/ExecutiveDashboardView";
 import { InputView } from "@/components/InputView";
 import { TeamView } from "@/components/TeamView";
 import { LoginForm } from "@/components/LoginForm";
+import { OfficialReportModal } from "@/components/OfficialReportModal";
+import { ExportCsvModal } from "@/components/ExportCsvModal";
 import { WorkOrderJob, Technician, SubDivision, JobStatus, AuthUser } from "@/types";
 import { INITIAL_JOBS, INITIAL_TECHNICIANS } from "@/data/initialData";
 
@@ -36,6 +38,8 @@ export default function HomePage() {
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<WorkOrderJob | null>(null);
   const [selectedSubdiv, setSelectedSubdiv] = useState<SubDivision | null>(null);
   const [selectedMemberForMatrix, setSelectedMemberForMatrix] = useState<Technician | null>(null);
+  const [isOfficialReportModalOpen, setIsOfficialReportModalOpen] = useState<boolean>(false);
+  const [isExportCsvModalOpen, setIsExportCsvModalOpen] = useState<boolean>(false);
 
   // Confirmation Modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -576,6 +580,8 @@ export default function HomePage() {
             onDeleteJob={handleDeleteJob}
             onOpenSubdivModal={(sub) => setSelectedSubdiv(sub)}
             onStatusChange={handleStatusChange}
+            onOpenReportModal={() => setIsOfficialReportModalOpen(true)}
+            onOpenCsvModal={() => setIsExportCsvModalOpen(true)}
           />
         )}
 
@@ -584,6 +590,8 @@ export default function HomePage() {
             jobs={jobs}
             teamMembers={teamMembers}
             onOpenJobDetail={(j: WorkOrderJob) => setSelectedJobForDetail(j)}
+            onOpenReportModal={() => setIsOfficialReportModalOpen(true)}
+            onOpenCsvModal={() => setIsExportCsvModalOpen(true)}
           />
         )}
 
@@ -663,6 +671,18 @@ export default function HomePage() {
         confirmLabel={confirmModal.confirmLabel}
         onConfirm={confirmModal.onConfirm}
         onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      <OfficialReportModal
+        isOpen={isOfficialReportModalOpen}
+        onClose={() => setIsOfficialReportModalOpen(false)}
+        jobs={jobs}
+      />
+
+      <ExportCsvModal
+        isOpen={isExportCsvModalOpen}
+        onClose={() => setIsExportCsvModalOpen(false)}
+        jobs={jobs}
       />
 
       <ToastContainer
