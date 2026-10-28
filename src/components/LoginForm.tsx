@@ -67,39 +67,56 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 relative overflow-hidden select-none">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-800 relative overflow-hidden select-none">
       
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-10 right-10 w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-2xl pointer-events-none"></div>
+      {/* Watermark Logo Besar di Background */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+        <div className="relative w-[480px] h-[480px] sm:w-[620px] sm:h-[620px] lg:w-[740px] lg:h-[740px] opacity-[0.06] transition-opacity">
+          <Image
+            src="/logo.png"
+            alt="Watermark Logo PT. Usaha Jayamas Bhakti"
+            fill
+            className="object-contain filter grayscale"
+            priority
+          />
+        </div>
+      </div>
+
+      {/* Decorative Subtle Corporate Grid Pattern */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-[0.4]"
+        style={{
+          backgroundImage: `radial-gradient(#cbd5e1 1px, transparent 1px)`,
+          backgroundSize: `24px 24px`
+        }}
+      ></div>
 
       <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Brand Card Container */}
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+        <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-2xl shadow-slate-300/50 p-6 sm:p-8 space-y-6">
           
           {/* Logo & Company Branding */}
           <div className="flex flex-col items-center text-center space-y-3">
-            <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center justify-center shadow-lg relative group">
-              <div className="absolute inset-0 bg-blue-500/10 rounded-2xl blur-md group-hover:bg-blue-500/20 transition-colors"></div>
+            <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shadow-xs relative group">
               <Image
                 src="/logo.png"
                 alt="Logo PT. Usaha Jayamas Bhakti"
                 width={70}
                 height={70}
-                className="object-contain relative z-10 drop-shadow-sm"
+                className="object-contain relative z-10 drop-shadow-xs"
                 priority
               />
             </div>
 
             <div>
-              <span className="text-[10px] font-mono tracking-widest text-blue-400 font-bold uppercase block">
+              <span className="text-[11px] font-mono tracking-widest text-blue-700 font-bold uppercase block">
                 PT. USAHA JAYAMAS BHAKTI
               </span>
-              <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight mt-0.5">
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight mt-0.5">
                 Monitoring Operasional Teknik
               </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Portal Internal WO / SPK & Executive Cockpit
               </p>
             </div>
@@ -107,9 +124,9 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
           {/* Error Notice */}
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2 animate-in fade-in duration-150">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2 animate-in fade-in duration-150">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span className="font-medium">{error}</span>
             </div>
           )}
 
@@ -118,33 +135,33 @@ export function LoginForm({ onLogin }: LoginFormProps) {
             
             {/* Username Input */}
             <div>
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
                 Username Akun
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <User className="w-4 h-4" />
                 </div>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Ketik admin atau prinof"
+                  placeholder="Masukkan username"
                   autoCapitalize="none"
                   autoComplete="username"
                   required
-                  className="w-full bg-slate-950/60 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                  className="w-full bg-slate-50/80 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all font-mono"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div>
-              <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
                 Kata Sandi
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -154,12 +171,12 @@ export function LoginForm({ onLogin }: LoginFormProps) {
                   placeholder="Masukkan kata sandi"
                   autoComplete="current-password"
                   required
-                  className="w-full bg-slate-950/60 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                  className="w-full bg-slate-50/80 border border-slate-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                   aria-label={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -171,7 +188,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 group disabled:opacity-60 cursor-pointer"
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 transition-all flex items-center justify-center gap-2 group disabled:opacity-60 cursor-pointer"
             >
               {isLoading ? (
                 <span>Memverifikasi Akun...</span>
@@ -185,24 +202,24 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           </form>
 
           {/* System Footer info */}
-          <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
             <span className="flex items-center gap-1">
-              <Database className="w-3 h-3 text-emerald-500" />
+              <Database className="w-3 h-3 text-emerald-600" />
               <span>Turso Cloud DB</span>
             </span>
             <span className="flex items-center gap-1">
-              <HardDrive className="w-3 h-3 text-blue-500" />
+              <HardDrive className="w-3 h-3 text-blue-600" />
               <span>Google Drive v3</span>
             </span>
             <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-slate-400" />
+              <ShieldCheck className="w-3 h-3 text-slate-500" />
               <span>Internal Only</span>
             </span>
           </div>
 
         </div>
 
-        {/* Security watermark */}
+        {/* Security watermark notice */}
         <p className="text-center text-[11px] text-slate-500 mt-4 font-sans">
           Akses terbatas untuk personil dan manajemen resmi PT. Usaha Jayamas Bhakti.
         </p>

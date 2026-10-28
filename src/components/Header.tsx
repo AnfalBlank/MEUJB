@@ -7,7 +7,6 @@ import {
   FileEdit, 
   Users, 
   PlusCircle, 
-  RefreshCw,
   BarChart3,
   LogOut
 } from "lucide-react";
@@ -84,13 +83,13 @@ export function Header({
                   
                   {/* Turso Cloud Badge */}
                   <div 
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[9px] sm:text-[10px] font-mono cursor-pointer hover:border-emerald-500/50 transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[9px] sm:text-[10px] font-mono cursor-pointer hover:border-emerald-500/50 transition-colors"
                     onClick={onSyncTurso}
                     title="Klik untuk sinkronisasi paksa dengan Turso Cloud DB (AWS AP-Northeast-1)"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-slate-300 font-semibold">Turso DB</span>
-                    {dbLatency !== null && (
+                    <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? "bg-blue-400 animate-spin" : "bg-emerald-400 animate-pulse"}`}></span>
+                    <span className="text-slate-300 font-semibold">{isSyncing ? "Syncing..." : "Turso DB"}</span>
+                    {dbLatency !== null && !isSyncing && (
                       <span className="text-emerald-400 font-bold hidden sm:inline">({dbLatency}ms)</span>
                     )}
                   </div>
@@ -196,22 +195,6 @@ export function Header({
               <span className="hidden sm:inline">Buat WO / SPK</span>
               <span className="sm:hidden">Baru</span>
             </button>
-
-            {/* Sync Turso Button */}
-            {onSyncTurso && (
-              <button
-                type="button"
-                onClick={onSyncTurso}
-                disabled={isSyncing}
-                title="Sinkronisasi Cloud Turso DB"
-                className={`p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors shrink-0 cursor-pointer ${
-                  isSyncing ? "animate-spin text-blue-400" : ""
-                }`}
-                aria-label="Sinkronisasi Cloud"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            )}
 
             {/* Desktop Only: Authenticated User Profile & Logout */}
             {currentUser && (
