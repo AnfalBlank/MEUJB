@@ -9,8 +9,9 @@ import {
   FileSpreadsheet, 
   Settings2, 
   Eye, 
-  Filter,
   CheckCircle2,
+  TrendingUp,
+  Building2,
   DollarSign
 } from "lucide-react";
 import { WorkOrderJob } from "@/types";
@@ -20,25 +21,25 @@ interface ExportCsvModalProps {
   isOpen: boolean;
   onClose: () => void;
   jobs: WorkOrderJob[];
+  initialSubdiv?: string;
+  initialStatus?: string;
 }
 
 export function ExportCsvModal({
   isOpen,
   onClose,
-  jobs
+  jobs,
+  initialSubdiv = "ALL",
+  initialStatus = "ALL",
 }: ExportCsvModalProps) {
   // Pilihan Delimiter
   const [delimiter, setDelimiter] = useState<";" | ",">(";");
-  // Opsi Tambahan Kolom
-  const [includeFinancial, setIncludeFinancial] = useState(true);
-  const [includeTechs, setIncludeTechs] = useState(true);
-  const [includeDriveLink, setIncludeDriveLink] = useState(true);
   // Status Tombol Salin
   const [isCopied, setIsCopied] = useState(false);
 
-  // Filter Sub-Divisi di Modal
-  const [filterSubdiv, setFilterSubdiv] = useState("ALL");
-  const [filterStatus, setFilterStatus] = useState("ALL");
+  // Filter Sub-Divisi & Status di Modal
+  const [filterSubdiv, setFilterSubdiv] = useState(initialSubdiv);
+  const [filterStatus, setFilterStatus] = useState(initialStatus);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((j) => {
@@ -58,7 +59,7 @@ export function ExportCsvModal({
     return `"${str}"`;
   };
 
-  // Generate CSV String
+  // Generate CSV String persis Google Spreadsheet UJB
   const csvData = useMemo(() => {
     const now = new Date();
     const dateStr = now.toLocaleDateString("id-ID", {
@@ -68,6 +69,7 @@ export function ExportCsvModal({
       day: "numeric",
     });
 
+    // 23 Kolom Utama
     const headers = [
       "No",
       "Jenis Dokumen",
@@ -79,28 +81,30 @@ export function ExportCsvModal({
       "Tanggal Mulai",
       "Target Selesai",
       "Durasi (Hari)",
+      "Personil Teknisi",
+      "Jumlah Personil",
+      "Tipe Penugasan",
+      "Total Kasbon (Rp)",
+      "Biaya SPD Harian (Rp)",
+      "Biaya Hotel SPD (Rp)",
+      "Total Pengajuan (Rp)",
+      "Realisasi Aktual (Rp)",
+      "Sisa Efisiensi (Rp)",
+      "Status Pekerjaan",
+      "Catatan Lapangan",
+      "Link Berita Acara Drive",
+      "Jumlah Foto",
     ];
 
-    if (includeTechs) {
-      headers.push("Personil Teknisi", "Jumlah Personil", "Tipe Penugasan");
-    }
-
-    if (includeFinancial) {
-      headers.push(
-        "Total Kasbon (Rp)",
-        "Biaya SPD Harian (Rp)",
-        "Biaya SPD Hotel (Rp)",
-        "Total Pengajuan (Rp)",
-        "Realisasi Aktual (Rp)",
-        "Sisa Efisiensi (Rp)"
-      );
-    }
-
-    headers.push("Status Pekerjaan", "Catatan Lapangan");
-
-    if (includeDriveLink) {
-      headers.push("Link Berita Acara Drive", "Jumlah Foto");
-    }
+    let totalKasbonAll = 0;
+    let totalSpdDailyAll = 0;
+    let totalSpdHotelAll = 0;
+    let totalPengajuanAll = 0;
+    let totalRealisasiAll = 0;
+    let totalDurasiAll = 0;
+    let totalPersonilAll = 0;
+    let totalFotoAll = 0;
+    let countDone = 0;
 
     const rows = filteredJobs.map((job, idx) => {
       const startDate = job.startDate || job.date;
@@ -113,6 +117,21 @@ export function ExportCsvModal({
       const totalPengajuan = totalKasbon + spdDaily + spdHotel;
       const realisasi = job.kasbonUsed || 0;
       const sisa = totalPengajuan - realisasi;
+      const techCount = (job.techs || []).length;
+      const photoCount = (job.photos || []).length;
+
+      totalKasbonAll += totalKasbon;
+      totalSpdDailyAll += spdDaily;
+      totalSpdHotelAll += spdHotel;
+      totalPengajuanAll += totalPengajuan;
+      totalRealisasiAll += realisasi;
+      totalDurasiAll += duration;
+      totalPersonilAll += techCount;
+      totalFotoAll += photoCount;
+
+      if (job.status === "Done") countDone++;
+
+      const techNames = (job.techs || []).map((t) => `${t.name} (Rp ${t.kasbon.toLocaleString("id-ID")})`).join(", ");
 
       const row = [
         idx + 1,
@@ -125,41 +144,115 @@ export function ExportCsvModal({
         formatDateIndo(startDate),
         formatDateIndo(targetDate),
         duration,
+        techNames || "-",
+        techCount,
+        job.spdType === "Proyek" ? "Proyek Lokal" : "SPD Luar Kota",
+        formatRupiah(totalKasbon),
+        formatRupiah(spdDaily),
+        formatRupiah(spdHotel),
+        formatRupiah(totalPengajuan),
+        formatRupiah(realisasi),
+        formatRupiah(sisa),
+        job.status,
+        job.statusNote || "-",
+        job.baLink || "-",
+        photoCount,
       ];
-
-      if (includeTechs) {
-        const names = (job.techs || []).map((t) => `${t.name} (Rp ${t.kasbon.toLocaleString("id-ID")})`).join(", ");
-        row.push(names || "-", (job.techs || []).length, job.spdType === "Proyek" ? "Proyek Lokal" : "SPD Luar Kota");
-      }
-
-      if (includeFinancial) {
-        row.push(totalKasbon, spdDaily, spdHotel, totalPengajuan, realisasi, sisa);
-      }
-
-      row.push(job.status, job.statusNote || "-");
-
-      if (includeDriveLink) {
-        row.push(job.baLink || "-", (job.photos || []).length);
-      }
 
       return row.map(escapeCell).join(delimiter);
     });
 
-    const metaHeaders = [
-      escapeCell("PT. USAHA JAYAMAS BHAKTI - ME ENGINEERING & IT SOLUTIONS"),
-      escapeCell(`REKAPITULASI RESMI WORK ORDER & SPK (${dateStr})`),
-      escapeCell(`Total Dokumen: ${filteredJobs.length} | Format Delimiter: ${delimiter === ";" ? "Titik Koma (Excel ID)" : "Koma (Standard RFC 4180)"}`),
-      "",
-    ];
+    const totalSisaAll = totalPengajuanAll - totalRealisasiAll;
+    const completionRateFormatted = filteredJobs.length > 0 
+      ? ((countDone / filteredJobs.length) * 100).toFixed(1).replace(".", ",") + "%" 
+      : "0,0%";
+
+    // Buat 23 kolom array helper
+    const makeRow23 = (cells: Record<number, string>) => {
+      const arr = Array(23).fill("");
+      Object.entries(cells).forEach(([colIdx, val]) => {
+        arr[Number(colIdx)] = val;
+      });
+      return arr.map(escapeCell).join(delimiter);
+    };
+
+    // Header Metadata
+    const row1 = makeRow23({ 0: "PT. USAHA JAYAMAS BHAKTI - ME ENGINEERING & IT SOLUTIONS" });
+    const row2 = makeRow23({ 0: `REKAPITULASI RESMI WORK ORDER & SPK (${dateStr})` });
+    const row3 = makeRow23({ 0: `Total Dokumen: ${filteredJobs.length} | Format Delimiter: ${delimiter === ";" ? "Titik Koma (Excel ID)" : "Koma (Standard RFC 4180)"}` });
+    const row4 = makeRow23({});
+
+    // Baris 5, 6, 7: KPI Metric Cards (Sesuai Persis Google Spreadsheet)
+    const row5 = makeRow23({
+      1: "TOTAL DOKUMEN",
+      4: "TOTAL PENGAJUAN",
+      8: "REALISASI AKTUAL",
+      12: "SISA EFISIENSI",
+      16: "TINGKAT SELESAI"
+    });
+
+    const row6 = makeRow23({
+      1: String(filteredJobs.length),
+      4: formatRupiah(totalPengajuanAll),
+      8: formatRupiah(totalRealisasiAll),
+      12: formatRupiah(totalSisaAll),
+      16: completionRateFormatted
+    });
+
+    const row7 = makeRow23({
+      1: "Total Dokumen Aktif",
+      4: "Akumulasi Usulan Biaya",
+      8: "Realisasi Biaya Lapangan",
+      12: "Penghematan Anggaran",
+      16: `Proyek Selesai: ${countDone} / ${filteredJobs.length}`
+    });
+
+    const row8 = makeRow23({});
+    const row9 = makeRow23({});
+
+    // Baris Total Ringkasan (Footer Row)
+    const summaryRow = makeRow23({
+      0: "TOTAL RINGKASAN",
+      9: String(totalDurasiAll),
+      11: String(totalPersonilAll),
+      13: formatRupiah(totalKasbonAll),
+      14: formatRupiah(totalSpdDailyAll),
+      15: formatRupiah(totalSpdHotelAll),
+      16: formatRupiah(totalPengajuanAll),
+      17: formatRupiah(totalRealisasiAll),
+      18: formatRupiah(totalSisaAll),
+      22: String(totalFotoAll),
+    });
 
     const fullContent = "\uFEFF" + [
-      ...metaHeaders,
+      row1,
+      row2,
+      row3,
+      row4,
+      row5,
+      row6,
+      row7,
+      row8,
+      row9,
       headers.map(escapeCell).join(delimiter),
-      ...rows
+      ...rows,
+      summaryRow,
     ].join("\r\n");
 
-    return { headers, rows, fullContent };
-  }, [filteredJobs, delimiter, includeFinancial, includeTechs, includeDriveLink]);
+    return { 
+      headers, 
+      rows, 
+      fullContent,
+      metrics: {
+        totalJobs: filteredJobs.length,
+        totalPengajuanAll,
+        totalRealisasiAll,
+        totalSisaAll,
+        completionRateFormatted,
+        countDone,
+      }
+    };
+  }, [filteredJobs, delimiter]);
 
   const handleDownload = () => {
     const blob = new Blob([csvData.fullContent], { type: "text/csv;charset=utf-8;" });
@@ -204,12 +297,12 @@ export function ExportCsvModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold">
-                  Excel & Sheets Export
+                  Standar Format Google Sheets & Excel UJB
                 </span>
                 <span className="text-xs text-slate-400">PT. Usaha Jayamas Bhakti</span>
               </div>
               <h2 className="text-sm sm:text-base font-bold text-white tracking-tight mt-0.5">
-                Export Data Operasional (CSV Rapi & Interaktif)
+                Export Data Operasional (CSV Rapi Sesuai Format Rekap)
               </h2>
             </div>
           </div>
@@ -226,93 +319,104 @@ export function ExportCsvModal({
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-slate-800">
           
-          {/* Controls Bar: Format & Kolom */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
-            
-            {/* Opsi Delimiter / Format */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Settings2 className="w-3.5 h-3.5 text-blue-600" />
-                Format Delimiter Pemisah Kolom
-              </label>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setDelimiter(";")}
-                  className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                    delimiter === ";"
-                      ? "bg-blue-50 border-blue-600 text-blue-900 font-bold shadow-xs"
-                      : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Titik Koma ( ; )</span>
-                    {delimiter === ";" && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal block mt-0.5">
-                    Standar Excel Indonesia
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDelimiter(",")}
-                  className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                    delimiter === ","
-                      ? "bg-blue-50 border-blue-600 text-blue-900 font-bold shadow-xs"
-                      : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Koma ( , )</span>
-                    {delimiter === "," && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-normal block mt-0.5">
-                    Google Sheets & International
-                  </span>
-                </button>
-              </div>
+          {/* 1. KPI Cards Preview (Seperti di Google Spreadsheet) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block tracking-wider">
+                Total Dokumen
+              </span>
+              <span className="text-lg font-black text-slate-900 mt-0.5 block">
+                {csvData.metrics.totalJobs}
+              </span>
+              <span className="text-[10px] text-slate-400">Total Dokumen Aktif</span>
             </div>
 
-            {/* Opsi Sertakan Kolom */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-blue-600" />
-                Sertakan Rincian Kolom Tambahan
-              </label>
-              <div className="space-y-1.5 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
-                  <input
-                    type="checkbox"
-                    checked={includeFinancial}
-                    onChange={(e) => setIncludeFinancial(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
-                  />
-                  <span>Rincian Finansial (Kasbon, SPD Harian, SPD Hotel, Realisasi, Efisiensi)</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
-                  <input
-                    type="checkbox"
-                    checked={includeTechs}
-                    onChange={(e) => setIncludeTechs(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
-                  />
-                  <span>Rincian Teknisi & Jumlah Personil Penugasan</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
-                  <input
-                    type="checkbox"
-                    checked={includeDriveLink}
-                    onChange={(e) => setIncludeDriveLink(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
-                  />
-                  <span>Link Berita Acara Google Drive & Jumlah Dokumentasi</span>
-                </label>
-              </div>
+            <div className="bg-blue-50/50 border border-blue-200/60 rounded-xl p-3">
+              <span className="text-[10px] font-bold text-blue-700 uppercase block tracking-wider">
+                Total Pengajuan
+              </span>
+              <span className="text-sm font-black text-blue-900 mt-1 block">
+                {formatRupiah(csvData.metrics.totalPengajuanAll)}
+              </span>
+              <span className="text-[10px] text-blue-600/70">Akumulasi Usulan</span>
             </div>
 
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block tracking-wider">
+                Realisasi Aktual
+              </span>
+              <span className="text-sm font-black text-slate-800 mt-1 block">
+                {formatRupiah(csvData.metrics.totalRealisasiAll)}
+              </span>
+              <span className="text-[10px] text-slate-400">Biaya Lapangan</span>
+            </div>
+
+            <div className="bg-emerald-50/50 border border-emerald-200/60 rounded-xl p-3">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase block tracking-wider">
+                Sisa Efisiensi
+              </span>
+              <span className="text-sm font-black text-emerald-900 mt-1 block">
+                {formatRupiah(csvData.metrics.totalSisaAll)}
+              </span>
+              <span className="text-[10px] text-emerald-600/70">Penghematan</span>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 col-span-2 sm:col-span-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase block tracking-wider">
+                Tingkat Selesai
+              </span>
+              <span className="text-lg font-black text-slate-900 mt-0.5 block">
+                {csvData.metrics.completionRateFormatted}
+              </span>
+              <span className="text-[10px] text-slate-400">
+                Selesai: {csvData.metrics.countDone}/{csvData.metrics.totalJobs}
+              </span>
+            </div>
+          </div>
+
+          {/* Controls Bar: Format Delimiter */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+              <Settings2 className="w-3.5 h-3.5 text-blue-600" />
+              Format Delimiter Pemisah Kolom
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <button
+                type="button"
+                onClick={() => setDelimiter(";")}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  delimiter === ";"
+                    ? "bg-blue-50 border-blue-600 text-blue-900 font-bold shadow-xs"
+                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>Titik Koma ( ; )</span>
+                  {delimiter === ";" && <Check className="w-4 h-4 text-blue-600" />}
+                </div>
+                <span className="text-[11px] text-slate-500 font-normal block mt-1">
+                  Standar Microsoft Excel Indonesia (Kolom langsung terpisah otomatis)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDelimiter(",")}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  delimiter === ","
+                    ? "bg-blue-50 border-blue-600 text-blue-900 font-bold shadow-xs"
+                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>Koma ( , )</span>
+                  {delimiter === "," && <Check className="w-4 h-4 text-blue-600" />}
+                </div>
+                <span className="text-[11px] text-slate-500 font-normal block mt-1">
+                  Standar Google Sheets & RFC 4180 Internasional
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Quick Metrics Bar */}
@@ -320,15 +424,15 @@ export function ExportCsvModal({
             <div className="flex items-center gap-2">
               <span className="font-bold text-slate-800 flex items-center gap-1">
                 <Eye className="w-3.5 h-3.5 text-blue-600" />
-                Live Preview (Pratinjau Data CSV):
+                Live Preview (Pratinjau Data CSV Sesuai Google Sheet):
               </span>
               <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-mono">
-                {filteredJobs.length} Baris Data Siap Diekspor
+                {filteredJobs.length} Baris Data + Baris Total Ringkasan
               </span>
             </div>
 
             <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-              UTF-8 BOM Encoded • Microsoft Excel Compatible
+              UTF-8 BOM Encoded • Microsoft Excel & Google Sheets Compatible
             </span>
           </div>
 
@@ -343,9 +447,8 @@ export function ExportCsvModal({
                     <th className="p-2 border-r border-slate-200 w-32">Sub-Divisi</th>
                     <th className="p-2 border-r border-slate-200">Customer</th>
                     <th className="p-2 border-r border-slate-200 w-24">Marketing</th>
-                    {includeFinancial && (
-                      <th className="p-2 border-r border-slate-200 w-28 text-right">Pengajuan</th>
-                    )}
+                    <th className="p-2 border-r border-slate-200 w-28 text-right">Pengajuan</th>
+                    <th className="p-2 border-r border-slate-200 w-28 text-right">Realisasi</th>
                     <th className="p-2 text-center w-20">Status</th>
                   </tr>
                 </thead>
@@ -355,6 +458,7 @@ export function ExportCsvModal({
                     const spdDaily = job.spdType === "Proyek" ? 0 : (job.spdDays || 0) * (job.spdDaily || 0);
                     const spdHotel = job.spdType === "Proyek" ? 0 : (job.spdNights || 0) * (job.spdHotel || 0);
                     const totalPengajuan = totalKasbon + spdDaily + spdHotel;
+                    const realisasi = job.kasbonUsed || 0;
 
                     return (
                       <tr key={job.id} className="hover:bg-slate-50">
@@ -363,9 +467,8 @@ export function ExportCsvModal({
                         <td className="p-2 border-r border-slate-100 font-sans text-slate-700">{job.subdiv}</td>
                         <td className="p-2 border-r border-slate-100 font-sans truncate max-w-[200px] text-slate-800">{job.customer}</td>
                         <td className="p-2 border-r border-slate-100 font-sans text-slate-600">{job.marketing}</td>
-                        {includeFinancial && (
-                          <td className="p-2 border-r border-slate-100 text-right font-semibold text-blue-700">{formatRupiah(totalPengajuan)}</td>
-                        )}
+                        <td className="p-2 border-r border-slate-100 text-right font-semibold text-blue-700">{formatRupiah(totalPengajuan)}</td>
+                        <td className="p-2 border-r border-slate-100 text-right font-semibold text-slate-700">{formatRupiah(realisasi)}</td>
                         <td className="p-2 text-center">
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                             job.status === "Done" ? "bg-emerald-100 text-emerald-800" :
@@ -395,7 +498,7 @@ export function ExportCsvModal({
         <div className="bg-slate-50 border-t border-slate-200 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Format tabel otomatis rapi di Excel tanpa teks tumpang-tindih.</span>
+            <span>Format tabel & baris TOTAL RINGKASAN otomatis rapi di Excel/Sheets.</span>
           </div>
 
           <div className="flex items-center gap-2">

@@ -40,6 +40,7 @@ export default function HomePage() {
   const [selectedMemberForMatrix, setSelectedMemberForMatrix] = useState<Technician | null>(null);
   const [isOfficialReportModalOpen, setIsOfficialReportModalOpen] = useState<boolean>(false);
   const [isExportCsvModalOpen, setIsExportCsvModalOpen] = useState<boolean>(false);
+  const [modalCustomJobs, setModalCustomJobs] = useState<WorkOrderJob[] | null>(null);
 
   // Confirmation Modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -580,8 +581,14 @@ export default function HomePage() {
             onDeleteJob={handleDeleteJob}
             onOpenSubdivModal={(sub) => setSelectedSubdiv(sub)}
             onStatusChange={handleStatusChange}
-            onOpenReportModal={() => setIsOfficialReportModalOpen(true)}
-            onOpenCsvModal={() => setIsExportCsvModalOpen(true)}
+            onOpenReportModal={() => {
+              setModalCustomJobs(null);
+              setIsOfficialReportModalOpen(true);
+            }}
+            onOpenCsvModal={() => {
+              setModalCustomJobs(null);
+              setIsExportCsvModalOpen(true);
+            }}
           />
         )}
 
@@ -590,8 +597,14 @@ export default function HomePage() {
             jobs={jobs}
             teamMembers={teamMembers}
             onOpenJobDetail={(j: WorkOrderJob) => setSelectedJobForDetail(j)}
-            onOpenReportModal={() => setIsOfficialReportModalOpen(true)}
-            onOpenCsvModal={() => setIsExportCsvModalOpen(true)}
+            onOpenReportModal={(filteredJobs) => {
+              setModalCustomJobs(filteredJobs || null);
+              setIsOfficialReportModalOpen(true);
+            }}
+            onOpenCsvModal={(filteredJobs) => {
+              setModalCustomJobs(filteredJobs || null);
+              setIsExportCsvModalOpen(true);
+            }}
           />
         )}
 
@@ -675,14 +688,20 @@ export default function HomePage() {
 
       <OfficialReportModal
         isOpen={isOfficialReportModalOpen}
-        onClose={() => setIsOfficialReportModalOpen(false)}
-        jobs={jobs}
+        onClose={() => {
+          setIsOfficialReportModalOpen(false);
+          setModalCustomJobs(null);
+        }}
+        jobs={modalCustomJobs || jobs}
       />
 
       <ExportCsvModal
         isOpen={isExportCsvModalOpen}
-        onClose={() => setIsExportCsvModalOpen(false)}
-        jobs={jobs}
+        onClose={() => {
+          setIsExportCsvModalOpen(false);
+          setModalCustomJobs(null);
+        }}
+        jobs={modalCustomJobs || jobs}
       />
 
       <ToastContainer

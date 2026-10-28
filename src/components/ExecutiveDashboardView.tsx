@@ -21,7 +21,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Building2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  RotateCcw
 } from "lucide-react";
 import { WorkOrderJob, Technician, SubDivision } from "@/types";
 import { ALL_SUB_DIVISIONS } from "@/data/initialData";
@@ -35,8 +36,8 @@ import {
 interface ExecutiveDashboardViewProps {
   jobs: WorkOrderJob[];
   teamMembers: Technician[];
-  onOpenReportModal?: () => void;
-  onOpenCsvModal?: () => void;
+  onOpenReportModal?: (filteredJobs?: WorkOrderJob[]) => void;
+  onOpenCsvModal?: (filteredJobs?: WorkOrderJob[]) => void;
   onOpenJobDetail?: (job: WorkOrderJob) => void;
 }
 
@@ -50,7 +51,9 @@ export function ExecutiveDashboardView({
 
   // Global Filters
   const [selectedSubdiv, setSelectedSubdiv] = useState<string>("ALL");
-  const [selectedYear, setSelectedYear] = useState<string>("ALL");
+  const [periodPreset, setPeriodPreset] = useState<string>("ALL");
+  const [startDateFilter, setStartDateFilter] = useState<string>("");
+  const [endDateFilter, setEndDateFilter] = useState<string>("");
 
   // Chart interactivity states
   const [hoveredSubdivSlice, setHoveredSubdivSlice] = useState<string | null>(null);
@@ -58,26 +61,67 @@ export function ExecutiveDashboardView({
   const [hoveredLineMonth, setHoveredLineMonth] = useState<number | null>(null);
   const [hoveredFinanceMonth, setHoveredFinanceMonth] = useState<number | null>(null);
 
-  // Available Years
-  const availableYears = useMemo(() => {
-    const years = new Set<string>();
-    jobs.forEach((j) => {
-      const y = (j.startDate || j.date || "").split("-")[0];
-      if (y && y.length === 4) years.add(y);
-    });
-    if (years.size === 0) years.add("2026");
-    return Array.from(years).sort().reverse();
-  }, [jobs]);
+  // Preset Date Handlers
+  const handlePresetChange = (preset: string) => {
+    setPeriodPreset(preset);
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
 
-  // Filtered jobs for executive analysis
+    if (preset === "ALL") {
+      setStartDateFilter("");
+      setEndDateFilter("");
+    } else if (preset === "THIS_MONTH") {
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const firstDay = `${year}-${pad(month + 1)}-01`;
+      const lastDayDate = new Date(year, month + 1, 0);
+      const lastDay = `${year}-${pad(month + 1)}-${pad(lastDayDate.getDate())}`;
+      setStartDateFilter(firstDay);
+      setEndDateFilter(lastDay);
+    } else if (preset === "LAST_MONTH") {
+      const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const month = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      const firstDay = `${year}-${pad(month + 1)}-01`;
+      const lastDayDate = new Date(year, month + 1, 0);
+      const lastDay = `${year}-${pad(month + 1)}-${pad(lastDayDate.getDate())}`;
+      setStartDateFilter(firstDay);
+      setEndDateFilter(lastDay);
+    } else if (preset === "THIS_QUARTER") {
+      const year = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+      const firstDay = `${year}-${pad(quarterStartMonth + 1)}-01`;
+      const lastDayDate = new Date(year, quarterStartMonth + 3, 0);
+      const lastDay = `${year}-${pad(quarterStartMonth + 3)}-${pad(lastDayDate.getDate())}`;
+      setStartDateFilter(firstDay);
+      setEndDateFilter(lastDay);
+    } else if (preset === "THIS_YEAR") {
+      const year = now.getFullYear();
+      setStartDateFilter(`${year}-01-01`);
+      setEndDateFilter(`${year}-12-31`);
+    }
+  };
+
+  const handleCustomDateChange = (start: string, end: string) => {
+    setStartDateFilter(start);
+    setEndDateFilter(end);
+    setPeriodPreset("CUSTOM");
+  };
+
+  // Filtered jobs for executive analysis based on Subdiv and Date Period Range
   const filteredJobs = useMemo(() => {
     return jobs.filter((j) => {
+      // 1. Subdiv
       if (selectedSubdiv !== "ALL" && j.subdiv !== selectedSubdiv) return false;
-      const jobYear = (j.startDate || j.date || "").split("-")[0];
-      if (selectedYear !== "ALL" && jobYear !== selectedYear) return false;
+
+      // 2. Date Range
+      const jobDate = j.startDate || j.date || "";
+      if (startDateFilter && jobDate && jobDate < startDateFilter) return false;
+      if (endDateFilter && jobDate && jobDate > endDateFilter) return false;
+
       return true;
     });
-  }, [jobs, selectedSubdiv, selectedYear]);
+  }, [jobs, selectedSubdiv, startDateFilter, endDateFilter]);
 
   // Executive High-Level KPIs
   const kpis = useMemo(() => {
@@ -313,29 +357,62 @@ export function ExecutiveDashboardView({
           </div>
 
           {/* Filter Bar & Action Button */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Year Selector */}
-            <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs">
-              <Calendar className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Periode Preset Selector */}
+            <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
+              <Calendar className="w-3.5 h-3.5 text-blue-400 mr-1.5 shrink-0" />
               <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="bg-transparent text-white font-semibold focus:outline-hidden"
+                value={periodPreset}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                className="bg-transparent text-white font-semibold focus:outline-hidden cursor-pointer"
+                title="Pilih Preset Periode"
               >
-                <option value="ALL" className="bg-slate-900">Semua Tahun</option>
-                {availableYears.map((y) => (
-                  <option key={y} value={y} className="bg-slate-900">{y}</option>
-                ))}
+                <option value="ALL" className="bg-slate-900">Semua Periode</option>
+                <option value="THIS_MONTH" className="bg-slate-900">Bulan Ini</option>
+                <option value="LAST_MONTH" className="bg-slate-900">Bulan Lalu</option>
+                <option value="THIS_QUARTER" className="bg-slate-900">Kuartal Ini (Q)</option>
+                <option value="THIS_YEAR" className="bg-slate-900">Tahun Ini</option>
+                <option value="CUSTOM" className="bg-slate-900">Pilih Tanggal Bebas...</option>
               </select>
             </div>
 
+            {/* Input Rentang Tanggal (Dari & Sampai) */}
+            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Dari:</span>
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => handleCustomDateChange(e.target.value, endDateFilter)}
+                className="bg-slate-900/90 border border-slate-600 rounded px-1.5 py-0.5 text-xs text-white focus:outline-hidden focus:border-blue-500 font-mono"
+                title="Pilih Tanggal Mulai Periode"
+              />
+              <span className="text-slate-400 text-[10px]">s/d</span>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => handleCustomDateChange(startDateFilter, e.target.value)}
+                className="bg-slate-900/90 border border-slate-600 rounded px-1.5 py-0.5 text-xs text-white focus:outline-hidden focus:border-blue-500 font-mono"
+                title="Pilih Tanggal Selesai Periode"
+              />
+              {(startDateFilter || endDateFilter) && (
+                <button
+                  type="button"
+                  onClick={() => handlePresetChange("ALL")}
+                  className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition-colors ml-0.5 cursor-pointer"
+                  title="Reset Filter Tanggal (Tampilkan Semua)"
+                >
+                  <RotateCcw className="w-3 h-3 text-slate-300" />
+                </button>
+              )}
+            </div>
+
             {/* Sub-Divisi Selector */}
-            <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs">
-              <Layers className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+            <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs">
+              <Layers className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" />
               <select
                 value={selectedSubdiv}
                 onChange={(e) => setSelectedSubdiv(e.target.value)}
-                className="bg-transparent text-white font-semibold focus:outline-hidden max-w-[150px] truncate"
+                className="bg-transparent text-white font-semibold focus:outline-hidden max-w-[130px] truncate cursor-pointer"
               >
                 <option value="ALL" className="bg-slate-900">Semua Divisi</option>
                 {ALL_SUB_DIVISIONS.map((s) => (
@@ -346,8 +423,9 @@ export function ExecutiveDashboardView({
 
             {/* Export CSV Button */}
             <button
-              onClick={onOpenCsvModal}
-              className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
+              onClick={() => onOpenCsvModal ? onOpenCsvModal(filteredJobs) : undefined}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
+              title="Ekspor CSV rapi sesuai format Google Spreadsheet"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>Ekspor CSV</span>
@@ -355,8 +433,9 @@ export function ExecutiveDashboardView({
 
             {/* Official Report Button */}
             <button
-              onClick={onOpenReportModal}
-              className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
+              onClick={() => onOpenReportModal ? onOpenReportModal(filteredJobs) : undefined}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
+              title="Cetak Laporan PDF Resmi KOP PT. Usaha Jayamas Bhakti"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Cetak Laporan PDF</span>
@@ -777,7 +856,7 @@ export function ExecutiveDashboardView({
             {hoveredLineMonth !== null && (
               <div className="absolute top-2 right-4 bg-slate-900 text-white p-2.5 rounded-lg shadow-lg text-xs space-y-1 z-10 font-mono">
                 <span className="font-bold block text-blue-400">
-                  {monthlyTrend[hoveredLineMonth].name} {selectedYear}
+                  {monthlyTrend[hoveredLineMonth].name} {startDateFilter ? startDateFilter.split("-")[0] : new Date().getFullYear()}
                 </span>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-300">Work Order:</span>
@@ -933,7 +1012,7 @@ export function ExecutiveDashboardView({
             {hoveredFinanceMonth !== null && (
               <div className="absolute top-2 right-4 bg-slate-900 text-white p-2.5 rounded-lg shadow-lg text-xs space-y-1 z-10 font-mono">
                 <span className="font-bold block text-blue-400">
-                  {monthlyTrend[hoveredFinanceMonth].name} {selectedYear}
+                  {monthlyTrend[hoveredFinanceMonth].name} {startDateFilter ? startDateFilter.split("-")[0] : new Date().getFullYear()}
                 </span>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-300">Anggaran:</span>
