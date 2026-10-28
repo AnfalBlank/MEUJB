@@ -78,3 +78,11 @@ export interface DivisionMeta {
   textColor: string;
   badgeBg: string;
 }
+
+export interface AuthUser {
+  username: string;
+  name: string;
+  role: string;
+  loggedInAt?: string;
+}
+

@@ -11,13 +11,17 @@ import { DashboardView } from "@/components/DashboardView";
 import { ExecutiveDashboardView } from "@/components/ExecutiveDashboardView";
 import { InputView } from "@/components/InputView";
 import { TeamView } from "@/components/TeamView";
-import { WorkOrderJob, Technician, SubDivision, JobStatus } from "@/types";
+import { LoginForm } from "@/components/LoginForm";
+import { WorkOrderJob, Technician, SubDivision, JobStatus, AuthUser } from "@/types";
 import { INITIAL_JOBS, INITIAL_TECHNICIANS } from "@/data/initialData";
 
 const JOBS_STORAGE_KEY = "me_engineering_jobs_v1";
 const TEAM_STORAGE_KEY = "me_engineering_team_v1";
+const AUTH_USER_KEY = "me_auth_user";
 
 export default function HomePage() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"dashboard" | "executive" | "input" | "team">("dashboard");
   const [jobs, setJobs] = useState<WorkOrderJob[]>(INITIAL_JOBS);
   const [teamMembers, setTeamMembers] = useState<Technician[]>(INITIAL_TECHNICIANS);
@@ -113,6 +117,16 @@ export default function HomePage() {
 
   // Hydrate on mount
   useEffect(() => {
+    // Check authentication state
+    try {
+      const savedAuth = localStorage.getItem(AUTH_USER_KEY);
+      if (savedAuth) {
+        setCurrentUser(JSON.parse(savedAuth));
+      }
+    } catch {} finally {
+      setIsAuthChecking(false);
+    }
+
     // First load from localStorage for instant display
     try {
       const storedJobs = localStorage.getItem(JOBS_STORAGE_KEY);
@@ -430,6 +444,49 @@ export default function HomePage() {
     await handleSaveMember(newMember);
   };
 
+  const handleLogin = (user: AuthUser) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    } catch {}
+    addToast(`Selamat datang kembali, ${user.name}!`, "success");
+  };
+
+  const handleLogout = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Konfirmasi Logout",
+      message: `Apakah Anda yakin ingin keluar dari akun ${currentUser?.name || ""}?`,
+      confirmLabel: "Logout",
+      onConfirm: () => {
+        setCurrentUser(null);
+        try {
+          localStorage.removeItem(AUTH_USER_KEY);
+        } catch {}
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        addToast("Anda telah berhasil keluar dari sistem.", "info");
+      }
+    });
+  };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300 gap-3">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <span className="text-xs font-mono text-slate-400">Memeriksa kredensial akses...</span>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <>
+        <LoginForm onLogin={handleLogin} />
+        <ToastContainer toasts={toasts} onDismiss={removeToast} />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
       
@@ -448,6 +505,8 @@ export default function HomePage() {
         isSyncing={isSyncing}
         onSyncTurso={() => fetchTursoData(true)}
         dbLatency={dbLatency}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* 2. Main Content Body */}

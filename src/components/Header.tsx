@@ -15,8 +15,10 @@ import {
   Cloud,
   CheckCircle2,
   AlertCircle,
-  BarChart3
+  BarChart3,
+  LogOut
 } from "lucide-react";
+import { AuthUser } from "@/types";
 
 interface HeaderProps {
   activeTab: "dashboard" | "executive" | "input" | "team";
@@ -29,6 +31,8 @@ interface HeaderProps {
   isSyncing?: boolean;
   onSyncTurso?: () => void;
   dbLatency?: number | null;
+  currentUser?: AuthUser | null;
+  onLogout?: () => void;
 }
 
 export function Header({
@@ -41,7 +45,9 @@ export function Header({
   onResetFactoryData,
   isSyncing = false,
   onSyncTurso,
-  dbLatency = null
+  dbLatency = null,
+  currentUser,
+  onLogout
 }: HeaderProps) {
   const [timeStr, setTimeStr] = useState<string>("");
 
@@ -231,6 +237,46 @@ export function Header({
                 <Database className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Authenticated User Profile & Logout */}
+            {currentUser && (
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-800 ml-1">
+                <div 
+                  className="flex items-center gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-2.5 py-1"
+                  title={`Login sebagai ${currentUser.name} (${currentUser.role})`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs">
+                    {currentUser.username === "admin" ? "AD" : "PR"}
+                  </div>
+                  <div className="hidden xl:block text-left">
+                    <div className="text-[11px] font-bold text-white leading-tight flex items-center gap-1.5">
+                      <span>{currentUser.name}</span>
+                      {currentUser.username === "admin" ? (
+                        <span className="text-[8px] bg-blue-500/20 text-blue-300 font-mono px-1 py-0.2 rounded font-semibold">ROOT</span>
+                      ) : (
+                        <span className="text-[8px] bg-emerald-500/20 text-emerald-300 font-mono px-1 py-0.2 rounded font-semibold">PM</span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                      {currentUser.role}
+                    </div>
+                  </div>
+                </div>
+
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    title={`Keluar dari sesi ${currentUser.name}`}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold transition-colors"
+                    aria-label="Logout"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
+                )}
+              </div>
+            )}
 
           </div>
         </div>
