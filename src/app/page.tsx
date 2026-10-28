@@ -18,6 +18,8 @@ import { INITIAL_JOBS, INITIAL_TECHNICIANS } from "@/data/initialData";
 const JOBS_STORAGE_KEY = "me_engineering_jobs_v1";
 const TEAM_STORAGE_KEY = "me_engineering_team_v1";
 const AUTH_USER_KEY = "me_auth_user";
+const LAST_ACTIVITY_KEY = "me_last_activity_timestamp";
+const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 Jam (7.200.000 ms)
 
 export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -117,11 +119,21 @@ export default function HomePage() {
 
   // Hydrate on mount
   useEffect(() => {
-    // Check authentication state
+    // Check authentication state & 2-hour inactivity
     try {
       const savedAuth = localStorage.getItem(AUTH_USER_KEY);
+      const lastActivityStr = localStorage.getItem(LAST_ACTIVITY_KEY);
       if (savedAuth) {
-        setCurrentUser(JSON.parse(savedAuth));
+        const lastActivity = Number(lastActivityStr || 0);
+        const isExpired = lastActivity > 0 && Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS;
+        if (isExpired) {
+          localStorage.removeItem(AUTH_USER_KEY);
+          localStorage.removeItem(LAST_ACTIVITY_KEY);
+          addToast("Sesi Anda telah berakhir karena tidak ada aktivitas selama 2 jam.", "info");
+        } else {
+          setCurrentUser(JSON.parse(savedAuth));
+          localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+        }
       }
     } catch {} finally {
       setIsAuthChecking(false);
@@ -144,6 +156,51 @@ export default function HomePage() {
     // Then seamlessly fetch latest from Turso Cloud
     fetchTursoData();
   }, [fetchTursoData]);
+
+  // 2-Hour User Inactivity Auto-Logout Tracker
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let lastRecorded = Date.now();
+    const updateActivity = () => {
+      const now = Date.now();
+      // Throttle updates to localStorage (every 10 seconds)
+      if (now - lastRecorded > 10000) {
+        lastRecorded = now;
+        try {
+          localStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+        } catch {}
+      }
+    };
+
+    const checkInactivity = () => {
+      try {
+        const stored = localStorage.getItem(LAST_ACTIVITY_KEY);
+        if (stored) {
+          const last = Number(stored);
+          if (Date.now() - last > INACTIVITY_TIMEOUT_MS) {
+            setCurrentUser(null);
+            localStorage.removeItem(AUTH_USER_KEY);
+            localStorage.removeItem(LAST_ACTIVITY_KEY);
+            addToast("Sesi Anda telah berakhir secara otomatis karena tidak ada aktivitas selama 2 jam.", "error");
+          }
+        }
+      } catch {}
+    };
+
+    const userEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+    userEvents.forEach((ev) => window.addEventListener(ev, updateActivity, { passive: true }));
+    window.addEventListener("focus", checkInactivity);
+
+    // Periodically verify inactivity every 30 seconds
+    const intervalId = setInterval(checkInactivity, 30000);
+
+    return () => {
+      userEvents.forEach((ev) => window.removeEventListener(ev, updateActivity));
+      window.removeEventListener("focus", checkInactivity);
+      clearInterval(intervalId);
+    };
+  }, [currentUser]);
 
   // Save to LocalStorage cache whenever state changes
   useEffect(() => {
@@ -448,6 +505,7 @@ export default function HomePage() {
     setCurrentUser(user);
     try {
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
     } catch {}
     addToast(`Selamat datang kembali, ${user.name}!`, "success");
   };
@@ -462,6 +520,7 @@ export default function HomePage() {
         setCurrentUser(null);
         try {
           localStorage.removeItem(AUTH_USER_KEY);
+          localStorage.removeItem(LAST_ACTIVITY_KEY);
         } catch {}
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         addToast("Anda telah berhasil keluar dari sistem.", "info");
@@ -490,7 +549,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
       
-      {/* 1. Industrial Header with Turso Sync Indicator */}
+      {/* 1. Fluid Industrial Header with Turso Sync Indicator */}
       <Header
         activeTab={activeTab}
         onTabChange={(tab) => {
@@ -499,9 +558,6 @@ export default function HomePage() {
         }}
         onNewJobClick={handleOpenNewJob}
         editingJobNumber={editingJob?.docNumber}
-        onExportData={handleExportData}
-        onImportData={handleImportData}
-        onResetFactoryData={handleResetFactoryData}
         isSyncing={isSyncing}
         onSyncTurso={() => fetchTursoData(true)}
         dbLatency={dbLatency}
@@ -509,8 +565,8 @@ export default function HomePage() {
         onLogout={handleLogout}
       />
 
-      {/* 2. Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* 2. Main Content Body - Fluid, Proportional Width */}
+      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 xl:px-10 py-5">
         {activeTab === "dashboard" && (
           <DashboardView
             jobs={jobs}
@@ -560,7 +616,7 @@ export default function HomePage() {
 
       {/* 3. Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-300">Sistem Monitoring Operasional Teknik</span>
             <span>•</span>

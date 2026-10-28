@@ -7,14 +7,7 @@ import {
   FileEdit, 
   Users, 
   PlusCircle, 
-  Download, 
-  Upload, 
   RefreshCw,
-  HardDrive,
-  Database,
-  Cloud,
-  CheckCircle2,
-  AlertCircle,
   BarChart3,
   LogOut
 } from "lucide-react";
@@ -25,9 +18,6 @@ interface HeaderProps {
   onTabChange: (tab: "dashboard" | "executive" | "input" | "team") => void;
   onNewJobClick: () => void;
   editingJobNumber?: string | null;
-  onExportData: () => void;
-  onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onResetFactoryData: () => void;
   isSyncing?: boolean;
   onSyncTurso?: () => void;
   dbLatency?: number | null;
@@ -40,9 +30,6 @@ export function Header({
   onTabChange,
   onNewJobClick,
   editingJobNumber,
-  onExportData,
-  onImportData,
-  onResetFactoryData,
   isSyncing = false,
   onSyncTurso,
   dbLatency = null,
@@ -70,59 +57,84 @@ export function Header({
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between py-3 gap-3">
+      <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-2.5 sm:py-3 gap-2.5 sm:gap-4">
           
           {/* Logo & System Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-slate-800/90 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
-              <Image
-                src="/logo.png"
-                alt="Logo PT. Usaha Jayamas Bhakti"
-                width={44}
-                height={44}
-                className="object-contain"
-                priority
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-bold tracking-wider text-blue-400 uppercase font-mono">
-                  PT. USAHA JAYAMAS BHAKTI
-                </span>
-                <span className="text-[9px] font-mono uppercase bg-blue-900/70 text-blue-300 border border-blue-700 px-1.5 py-0.5 rounded font-bold">
-                  ME & IT Engineering
-                </span>
-                
-                {/* Turso Cloud Badge */}
-                <div 
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[10px] font-mono cursor-pointer hover:border-emerald-500/50 transition-colors"
-                  onClick={onSyncTurso}
-                  title="Klik untuk sinkronisasi paksa dengan Turso Cloud DB (AWS AP-Northeast-1)"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-slate-300 font-semibold">Turso DB</span>
-                  {dbLatency !== null && (
-                    <span className="text-emerald-400 font-bold">({dbLatency}ms)</span>
-                  )}
-                </div>
+          <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800/90 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+                <Image
+                  src="/logo.png"
+                  alt="Logo PT. Usaha Jayamas Bhakti"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                  priority
+                />
               </div>
+              <div>
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-blue-400 uppercase font-mono">
+                    PT. USAHA JAYAMAS BHAKTI
+                  </span>
+                  <span className="text-[8px] sm:text-[9px] font-mono uppercase bg-blue-900/70 text-blue-300 border border-blue-700 px-1.5 py-0.2 rounded font-bold">
+                    ME & IT Engineering
+                  </span>
+                  
+                  {/* Turso Cloud Badge */}
+                  <div 
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/90 border border-slate-700 text-[9px] sm:text-[10px] font-mono cursor-pointer hover:border-emerald-500/50 transition-colors"
+                    onClick={onSyncTurso}
+                    title="Klik untuk sinkronisasi paksa dengan Turso Cloud DB (AWS AP-Northeast-1)"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="text-slate-300 font-semibold">Turso DB</span>
+                    {dbLatency !== null && (
+                      <span className="text-emerald-400 font-bold hidden sm:inline">({dbLatency}ms)</span>
+                    )}
+                  </div>
+                </div>
 
-              <h1 className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight mt-0.5">
-                Monitoring Operasional Teknik (WO / SPK)
-              </h1>
+                <h1 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-white leading-tight mt-0.5 truncate">
+                  Monitoring Operasional Teknik (WO / SPK)
+                </h1>
+              </div>
             </div>
+
+            {/* Mobile Only: Profile Avatar & Logout */}
+            {currentUser && (
+              <div className="flex items-center gap-1.5 lg:hidden shrink-0">
+                <div 
+                  className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs"
+                  title={`${currentUser.name} (${currentUser.role})`}
+                >
+                  {currentUser.username === "admin" ? "AD" : "PR"}
+                </div>
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    title={`Keluar (${currentUser.username})`}
+                    className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs transition-colors"
+                    aria-label="Logout"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-400" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Action Tools & Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center justify-between lg:justify-end gap-2 overflow-x-auto no-scrollbar w-full lg:w-auto pb-0.5 lg:pb-0">
             
             {/* Primary Navigation Tabs */}
-            <nav className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 gap-0.5">
+            <nav className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 gap-0.5 shrink-0">
               <button
                 type="button"
                 onClick={() => onTabChange("dashboard")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
                   activeTab === "dashboard"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -135,7 +147,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onTabChange("executive")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
                   activeTab === "executive"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -148,7 +160,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onTabChange("input")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
                   activeTab === "input"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -163,7 +175,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onTabChange("team")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
                   activeTab === "team"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -174,73 +186,36 @@ export function Header({
               </button>
             </nav>
 
-            {/* Quick Action Button */}
+            {/* Quick Action Button: Create WO / SPK */}
             <button
               type="button"
               onClick={onNewJobClick}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-xs ml-1"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-xs shrink-0 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Buat WO / SPK</span>
               <span className="sm:hidden">Baru</span>
             </button>
 
-            {/* Data Management Utilities */}
-            <div className="flex items-center gap-1 border-l border-slate-800 pl-2 ml-1">
-              {/* Sync Turso Button */}
-              {onSyncTurso && (
-                <button
-                  type="button"
-                  onClick={onSyncTurso}
-                  disabled={isSyncing}
-                  title="Sinkronisasi Cloud Turso DB"
-                  className={`p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors ${
-                    isSyncing ? "animate-spin text-blue-400" : ""
-                  }`}
-                  aria-label="Sinkronisasi Cloud"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              )}
-
+            {/* Sync Turso Button */}
+            {onSyncTurso && (
               <button
                 type="button"
-                onClick={onExportData}
-                title="Export Data Operasional (Backup JSON)"
-                className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
-                aria-label="Export Data"
+                onClick={onSyncTurso}
+                disabled={isSyncing}
+                title="Sinkronisasi Cloud Turso DB"
+                className={`p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                  isSyncing ? "animate-spin text-blue-400" : ""
+                }`}
+                aria-label="Sinkronisasi Cloud"
               >
-                <Download className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" />
               </button>
+            )}
 
-              <label 
-                title="Import Data Operasional (Restore JSON)"
-                className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                aria-label="Import Data"
-              >
-                <Upload className="w-4 h-4" />
-                <input 
-                  type="file" 
-                  accept=".json" 
-                  onChange={onImportData} 
-                  className="hidden" 
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={onResetFactoryData}
-                title="Kembalikan ke Data Awal Standar"
-                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                aria-label="Reset Data"
-              >
-                <Database className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Authenticated User Profile & Logout */}
+            {/* Desktop Only: Authenticated User Profile & Logout */}
             {currentUser && (
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-800 ml-1">
+              <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-800 ml-1 shrink-0">
                 <div 
                   className="flex items-center gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-2.5 py-1"
                   title={`Login sebagai ${currentUser.name} (${currentUser.role})`}
@@ -248,7 +223,7 @@ export function Header({
                   <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs">
                     {currentUser.username === "admin" ? "AD" : "PR"}
                   </div>
-                  <div className="hidden xl:block text-left">
+                  <div className="text-left">
                     <div className="text-[11px] font-bold text-white leading-tight flex items-center gap-1.5">
                       <span>{currentUser.name}</span>
                       {currentUser.username === "admin" ? (
@@ -268,11 +243,11 @@ export function Header({
                     type="button"
                     onClick={onLogout}
                     title={`Keluar dari sesi ${currentUser.name}`}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
                     aria-label="Logout"
                   >
                     <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                    <span className="hidden sm:inline">Logout</span>
+                    <span>Logout</span>
                   </button>
                 )}
               </div>

@@ -66,12 +66,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
     }, 400);
   };
 
-  const fillQuickCredential = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError("");
-  };
-
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 relative overflow-hidden select-none">
       
@@ -189,42 +183,6 @@ export function LoginForm({ onLogin }: LoginFormProps) {
               )}
             </button>
           </form>
-
-          {/* Quick Credential Selection Buttons */}
-          <div className="pt-2 border-t border-slate-800 space-y-2">
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block text-center">
-              Pilihan Login Cepat (Klik untuk Isi Otomatis)
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickCredential("admin", "password")}
-                className="p-2 bg-slate-800/60 hover:bg-slate-800 active:bg-slate-700 border border-slate-700/60 hover:border-blue-500/50 rounded-lg text-left transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-200 group-hover:text-blue-400">1. Admin</span>
-                  <span className="text-[9px] font-mono text-emerald-400">Super Admin</span>
-                </div>
-                <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">
-                  user: <strong>admin</strong>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickCredential("prinof", "password")}
-                className="p-2 bg-slate-800/60 hover:bg-slate-800 active:bg-slate-700 border border-slate-700/60 hover:border-blue-500/50 rounded-lg text-left transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-200 group-hover:text-blue-400">2. Prinof</span>
-                  <span className="text-[9px] font-mono text-blue-400">PM Teknik</span>
-                </div>
-                <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">
-                  user: <strong>prinof</strong>
-                </div>
-              </button>
-            </div>
-          </div>
 
           {/* System Footer info */}
           <div className="pt-1 flex items-center justify-between text-[10px] text-slate-500 font-mono">
