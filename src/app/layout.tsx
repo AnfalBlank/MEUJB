@@ -15,6 +15,14 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Sistem Monitoring Operasional Teknik (WO/SPK Tracker) - ME Engineering",
   description: "Sistem monitoring internal alur kerja Work Order (WO) dan Surat Perintah Kerja (SPK) untuk sub-divisi Fueling System, IT Engineering, dan Electrical Engineering.",
+  icons: {
+    icon: [
+      { url: "/logo.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
