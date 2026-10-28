@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Monitoring WO & SPK - ME Engineering</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <!-- Toast Notifikasi -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+  <!-- Modal Konfirmasi Hapus -->
+  <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+      <div class="flex items-center gap-3 text-rose-600 mb-3">
+        <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+          <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+        </div>
+        <h3 class="text-lg font-bold" id="confirm-title">Konfirmasi Hapus</h3>
+      </div>
+      <p class="text-sm text-slate-600 mb-6" id="confirm-message">Apakah Anda yakin ingin menghapus data ini?</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100">Batal</button>
+        <button id="confirm-yes-btn" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Ya, Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Interaktif Sub-Divisi -->
+  <div id="subdiv-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col border border-slate-200 overflow-hidden">
+      <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+        <div>
+          <span class="text-[11px] uppercase tracking-wider bg-blue-600 px-2.5 py-0.5 rounded font-bold">Detail & Edit Sub-Divisi</span>
+          <h3 class="text-xl font-bold mt-1" id="modal-subdiv-title">Sub-Divisi</h3>
+          <p class="text-xs text-slate-400">Menampilkan seluruh WO & SPK pada sub-divisi terkait</p>
+        </div>
+        <button onclick="closeSubdivModal()" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-6 gap-3 p-4 bg-slate-50 border-b border-slate-200 text-center" id="modal-subdiv-stats"></div>
+      <div class="p-5 overflow-y-auto flex-1 space-y-3" id="modal-subdiv-list"></div>
+      <div class="p-4 bg-slate-100 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2">
+        <span class="text-xs text-slate-500">Klik tombol <b>Edit</b> pada item untuk mengubah data WO/SPK.</span>
+        <div class="flex gap-2">
+          <button onclick="createNewFromModal()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+            <i class="fa-solid fa-plus mr-1"></i> Tambah WO/SPK di Sub-Divisi Ini
+          </button>
+          <button onclick="closeSubdivModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detail Pekerjaan Lengkap -->
+  <div id="job-detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-slate-200 overflow-hidden">
+      <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <span id="detail-doc-badge" class="px-3 py-1 rounded-lg text-xs font-extrabold uppercase bg-blue-600">WO</span>
+          <div>
+            <h3 class="text-lg md:text-xl font-bold" id="detail-doc-number">-</h3>
+            <p class="text-xs text-slate-400" id="detail-subdiv-date">-</p>
+          </div>
+        </div>
+        <button onclick="closeJobDetailModal()" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto flex-1 space-y-5" id="job-detail-content"></div>
+      <div class="p-4 bg-slate-100 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2">
+        <span class="text-xs text-slate-500">Semua rincian teknisi, kasbon, SPD, BA, dan status ditampilkan di atas.</span>
+        <div class="flex gap-2">
+          <button id="detail-edit-btn" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold">
+            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Pekerjaan
+          </button>
+          <button id="detail-delete-btn" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">
+            <i class="fa-solid fa-trash mr-1"></i> Hapus Pekerjaan
+          </button>
+          <button onclick="closeJobDetailModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Tutup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Matriks & Performa Personil -->
+  <div id="member-matrix-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-slate-200 overflow-hidden">
+      <div class="p-5 bg-slate-900 text-white flex justify-between items-center">
+        <div>
+          <span class="text-[11px] uppercase tracking-wider bg-emerald-600 px-2.5 py-0.5 rounded font-bold">Matriks Performa Personil</span>
+          <h3 class="text-xl font-bold mt-1" id="member-modal-title">-</h3>
+          <p class="text-xs text-slate-400" id="member-modal-subtitle">-</p>
+        </div>
+        <button onclick="closeMemberMatrixModal()" class="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto flex-1 space-y-5" id="member-matrix-content"></div>
+      <div class="p-4 bg-slate-100 border-t border-slate-200 flex justify-between items-center">
+        <span class="text-xs text-slate-500">Klik pada Nomor WO/SPK untuk melihat detail pekerjaan.</span>
+        <button onclick="closeMemberMatrixModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-xs font-semibold">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-gears text-blue-400"></i>
+          MECHANICAL & ELECTRICAL ENGINEERING
+        </h1>
+        <p class="text-xs text-slate-400">Sistem Monitoring WO, SPK, Kasbon, SPD & Google Sheet Live Sync</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white transition">
+          <i class="fa-solid fa-chart-pie mr-1"></i> Dashboard Utama
+        </button>
+        <button onclick="openInputTabNew()" id="tab-input" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+          <i class="fa-solid fa-file-pen mr-1"></i> <span id="tab-input-label">Input WO / SPK</span>
+        </button>
+        <button onclick="switchTab('team')" id="tab-team" class="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+          <i class="fa-solid fa-users-gear mr-1"></i> Master Tim & Sub-Divisi
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- ================= TAB 1: DASHBOARD UTAMA ================= -->
+    <section id="view-dashboard" class="space-y-6">
+
+      <!-- 1. Filter Rekapitulasi Lengkap -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Filter Rekapitulasi Periode & Divisi</span>
+            <h2 class="text-lg font-bold text-slate-800 mt-1">Rekapan Total WO & SPK Berdasarkan Bulan, Tahun, Sub-Divisi & Marketing</h2>
+          </div>
+          <button onclick="resetRecapFilters()" class="text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
+            <i class="fa-solid fa-rotate-left mr-1"></i> Reset Filter Rekap
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Berdasarkan Bulan</label>
+            <select id="rekap-month" onchange="renderDashboard()" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Semua Bulan</option>
+              <option value="01">Januari</option>
+              <option value="02">Februari</option>
+              <option value="03">Maret</option>
+              <option value="04">April</option>
+              <option value="05">Mei</option>
+              <option value="06">Juni</option>
+              <option value="07">Juli</option>
+              <option value="08">Agustus</option>
+              <option value="09">September</option>
+              <option value="10">Oktober</option>
+              <option value="11">November</option>
+              <option value="12">Desember</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Berdasarkan Tahun</label>
+            <select id="rekap-year" onchange="renderDashboard()" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Semua Tahun</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Filter per Sub-Divisi</label>
+            <select id="rekap-subdiv" onchange="renderDashboard()" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm bg-slate-50 font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Semua Sub-Divisi Engineering</option>
+              <option value="Fueling System Engineering">Fueling System Engineering</option>
+              <option value="IT Engineering">IT Engineering</option>
+              <option value="Electrical Engineering">Electrical Engineering</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-purple-600 mb-1">Filter per Marketing</label>
+            <select id="rekap-marketing" onchange="renderDashboard()" class="w-full border border-purple-200 rounded-xl px-3 py-2 text-sm bg-purple-50/40 font-semibold focus:ring-2 focus:ring-purple-500 outline-none">
+              <option value="ALL">Semua Marketing</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Konfigurasi Bulat Interaktif Sub-Divisi (Hanya 3 Sub-Divisi Engineering, Tanpa Marketing) -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-5">
+          <div>
+            <h3 class="font-bold text-slate-800 flex items-center gap-2 text-base">
+              <i class="fa-solid fa-circle-nodes text-blue-600"></i>
+              Sub-Divisi Engineering (Konfigurasi Bulat Interaktif)
+            </h3>
+            <p class="text-xs text-slate-500">Menampilkan 3 Sub-Divisi Engineering. Klik pada lingkaran untuk melihat rincian WO & SPK serta melakukan Edit / Perubahan.</p>
+          </div>
+        </div>
+        <div id="circular-subdiv-container" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+      </div>
+
+      <!-- 3. Rekapan Total WO & SPK -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-600 border border-slate-200">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <h3 class="font-bold text-slate-800">REKAPAN TOTAL WO</h3>
+              <p class="text-[11px] text-slate-400">Sesuai filter Bulan & Tahun aktif</p>
+            </div>
+            <span id="total-wo" class="text-3xl font-extrabold text-blue-600">0</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 text-center text-xs">
+            <div class="bg-emerald-50 p-2.5 rounded-xl text-emerald-700 border border-emerald-100">
+              <div class="font-extrabold text-lg" id="wo-done">0</div>
+              <div class="text-[11px] font-semibold">Done (<span id="wo-done-pct">0%</span>)</div>
+            </div>
+            <div class="bg-amber-50 p-2.5 rounded-xl text-amber-700 border border-amber-100">
+              <div class="font-extrabold text-lg" id="wo-pending">0</div>
+              <div class="text-[11px] font-semibold">Pending (<span id="wo-pending-pct">0%</span>)</div>
+            </div>
+            <div class="bg-indigo-50 p-2.5 rounded-xl text-indigo-700 border border-indigo-100">
+              <div class="font-extrabold text-lg" id="wo-hold">0</div>
+              <div class="text-[11px] font-semibold">Hold (<span id="wo-hold-pct">0%</span>)</div>
+            </div>
+            <div class="bg-rose-50 p-2.5 rounded-xl text-rose-700 border border-rose-100">
+              <div class="font-extrabold text-lg" id="wo-cancel">0</div>
+              <div class="text-[11px] font-semibold">Cancel (<span id="wo-cancel-pct">0%</span>)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-purple-600 border border-slate-200">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <h3 class="font-bold text-slate-800">REKAPAN TOTAL SPK</h3>
+              <p class="text-[11px] text-slate-400">Sesuai filter Bulan & Tahun aktif</p>
+            </div>
+            <span id="total-spk" class="text-3xl font-extrabold text-purple-600">0</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 text-center text-xs">
+            <div class="bg-emerald-50 p-2.5 rounded-xl text-emerald-700 border border-emerald-100">
+              <div class="font-extrabold text-lg" id="spk-done">0</div>
+              <div class="text-[11px] font-semibold">Done (<span id="spk-done-pct">0%</span>)</div>
+            </div>
+            <div class="bg-amber-50 p-2.5 rounded-xl text-amber-700 border border-amber-100">
+              <div class="font-extrabold text-lg" id="spk-pending">0</div>
+              <div class="text-[11px] font-semibold">Pending (<span id="spk-pending-pct">0%</span>)</div>
+            </div>
+            <div class="bg-indigo-50 p-2.5 rounded-xl text-indigo-700 border border-indigo-100">
+              <div class="font-extrabold text-lg" id="spk-hold">0</div>
+              <div class="text-[11px] font-semibold">Hold (<span id="spk-hold-pct">0%</span>)</div>
+            </div>
+            <div class="bg-rose-50 p-2.5 rounded-xl text-rose-700 border border-rose-100">
+              <div class="font-extrabold text-lg" id="spk-cancel">0</div>
+              <div class="text-[11px] font-semibold">Cancel (<span id="spk-cancel-pct">0%</span>)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Matriks Pekerjaan -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4">
+          <div>
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-table-cells text-blue-600"></i>
+              Matriks Pekerjaan & Persentase Status per Sub-Divisi
+            </h3>
+            <p class="text-xs text-slate-500">Klik baris matriks atau tombol aksi untuk mengelola data.</p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs md:text-sm text-left border-collapse">
+            <thead class="bg-slate-800 text-white text-[11px] uppercase">
+              <tr>
+                <th class="p-3 rounded-tl-lg">Sub-Divisi</th>
+                <th class="p-3 text-center">Personil</th>
+                <th class="p-3 text-center bg-blue-950">Jml WO</th>
+                <th class="p-3 text-center bg-purple-950">Jml SPK</th>
+                <th class="p-3 text-center">Total</th>
+                <th class="p-3 text-center bg-emerald-900">Done (%)</th>
+                <th class="p-3 text-center bg-amber-900">Pending (%)</th>
+                <th class="p-3 text-center bg-indigo-900">Hold (%)</th>
+                <th class="p-3 text-center bg-rose-900">Cancel (%)</th>
+                <th class="p-3 text-center rounded-tr-lg">Aksi Matriks</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. Tabel Monitoring Pekerjaan -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 class="font-bold text-slate-800">Daftar Monitoring Pekerjaan (WO & SPK)</h3>
+            <p class="text-xs text-slate-500">Klik pada <b>Nomor WO / SPK</b> untuk menampilkan rincian teknisi, kasbon, SPD, dan status lengkap.</p>
+          </div>
+          <select id="filter-status" onchange="renderDashboard()" class="border border-slate-300 rounded-xl px-3 py-2 text-sm bg-white font-semibold">
+            <option value="ALL">Semua Status Pekerjaan</option>
+            <option value="Done">Status: Done</option>
+            <option value="Pending">Status: Pending</option>
+            <option value="Hold">Status: Hold</option>
+            <option value="Cancel">Status: Cancel</option>
+          </select>
+        </div>
+
+        <!-- Baris Filter Pencarian Spesifik: No. WO/SPK, Nama Customer, Nama Marketing -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="relative">
+            <i class="fa-solid fa-hashtag absolute left-3 top-3 text-blue-500 text-xs"></i>
+            <input type="text" id="search-doc" oninput="renderDashboard()" placeholder="Cari No. WO / No. SPK..." class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-building absolute left-3 top-3 text-emerald-600 text-xs"></i>
+            <input type="text" id="search-customer" oninput="renderDashboard()" placeholder="Cari Nama Customer..." class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-user-tie absolute left-3 top-3 text-purple-600 text-xs"></i>
+            <input type="text" id="search-marketing" oninput="renderDashboard()" placeholder="Cari Nama Marketing..." class="w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-600 uppercase border-b border-slate-300">
+              <tr>
+                <th class="p-3 text-center w-12">No</th>
+                <th class="p-3">Tipe & Nomor (Klik Detail)</th>
+                <th class="p-3">Sub-Divisi Utama</th>
+                <th class="p-3">Nama Marketing</th>
+                <th class="p-3">Nama Customer</th>
+                <th class="p-3">Uraian & Target</th>
+                <th class="p-3">Tim Teknisi</th>
+                <th class="p-3">Bukti BA & Foto</th>
+                <th class="p-3">Status & Ket.</th>
+                <th class="p-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-body" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: INPUT WO / SPK ================= -->
+    <section id="view-input" class="hidden">
+      <form id="job-form" onsubmit="saveJob(event)" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+        <input type="hidden" id="edit-job-id" value="">
+
+        <div class="border-b pb-3 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div>
+            <span id="form-mode-badge" class="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded bg-blue-100 text-blue-700">Mode Input Baru</span>
+            <h2 class="text-lg font-bold text-slate-800 mt-1" id="form-title">Form Input WO / SPK</h2>
+            <p class="text-xs text-slate-500">Data terintegrasi dengan Google Sheet Live Sync</p>
+          </div>
+          <button type="button" onclick="resetJobForm()" class="self-start sm:self-center text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg">
+            <i class="fa-solid fa-eraser mr-1"></i> Bersihkan Form
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">1. Jenis Dokumen *</label>
+            <select id="doc-type" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white font-semibold">
+              <option value="WO">WO (Work Order)</option>
+              <option value="SPK">SPK (Surat Perintah Kerja)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Nomor WO / SPK (Maks 50 Huruf) *</label>
+            <input type="text" id="doc-number" maxlength="50" required placeholder="Contoh: SPK/ME/2026/10/001" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-purple-700 mb-1">Nama Marketing (Maks 30 Huruf) *</label>
+            <input type="text" id="marketing-name" maxlength="30" required placeholder="Masukkan Nama Marketing..." class="w-full border border-purple-300 rounded-lg p-2.5 text-sm bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Sub-Divisi Penanggung Jawab Utama *</label>
+            <select id="primary-subdiv" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white font-semibold">
+              <option value="Fueling System Engineering">Fueling System Engineering</option>
+              <option value="IT Engineering">IT Engineering</option>
+              <option value="Electrical Engineering">Electrical Engineering</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Target Lama Pekerjaan & Tanggal Pelaksanaan *</label>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="text" id="job-target" required placeholder="Target (Misal: 3 Hari)" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+              <input type="date" id="job-date" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">
+              Nama Customer (Maks 30 Kata) * <span id="cust-word-count" class="text-slate-400 font-normal">(0/30 kata)</span>
+            </label>
+            <textarea id="customer-name" rows="2" required oninput="validateWords(this, 30, 'cust-word-count')" placeholder="Nama Perusahaan / Instansi Customer..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-700 mb-1">
+              Keterangan Pekerjaan (Maks 50 Kata) * <span id="desc-word-count" class="text-slate-400 font-normal">(0/50 kata)</span>
+            </label>
+            <textarea id="job-desc" rows="2" required oninput="validateWords(this, 50, 'desc-word-count')" placeholder="Detail pekerjaan yang akan dilakukan..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm"></textarea>
+          </div>
+        </div>
+
+        <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-200 space-y-3">
+          <h3 class="text-sm font-bold text-blue-900">2 & 3. Penugasan Tim Personil (Bisa Cross Divisi) & Kasbon</h3>
+          <p class="text-xs text-slate-600">Centang personil yang bertugas dan isi nominal kasbon (Rp) jika ada:</p>
+          <div id="tech-selection-list" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+        </div>
+
+        <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-4">
+          <div class="flex flex-col md:flex-row justify-between md:items-center gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-amber-900">4 & 5. Kategori Perjalanan Dinas (SPD dan Proyek)</h3>
+              <p class="text-xs text-amber-800/80" id="spd-subtitle-info">Rumus Otomatis: Total Uang SPD = (Jumlah Hari × SPD Harian) + (Biaya Hotel × Malam)</p>
+            </div>
+            <select id="spd-type" onchange="toggleSpdMode()" class="border border-amber-400 rounded-lg px-4 py-2 text-sm bg-white font-bold text-amber-900">
+              <option value="SPD">SPD</option>
+              <option value="Proyek">Proyek</option>
+            </select>
+          </div>
+
+          <div id="spd-fields" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Hari</label>
+              <input type="number" id="spd-days" min="0" value="1" oninput="calculateSpdTotal()" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">SPD Harian / Hari (Rp)</label>
+              <input type="number" id="spd-daily" min="0" value="0" oninput="calculateSpdTotal()" placeholder="Rp / Hari" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Malam</label>
+              <input type="number" id="spd-nights" min="0" value="0" oninput="calculateSpdTotal()" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Biaya Hotel / Malam (Rp)</label>
+              <input type="number" id="spd-hotel" min="0" value="0" oninput="calculateSpdTotal()" placeholder="Rp / Malam" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+            </div>
+            <div class="bg-amber-100/90 border border-amber-300 p-2.5 rounded-xl">
+              <span class="block text-[10px] font-bold uppercase text-amber-800">Total Uang SPD Didapat</span>
+              <div id="spd-total-display" class="text-base font-extrabold text-amber-900 mt-0.5">Rp 0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <h3 class="text-sm font-bold text-emerald-900">7, 8 & 9. Penyelesaian: Upload BA/Foto ke Google Drive, Realisasi Kasbon & Status</h3>
+            <a href="https://drive.google.com/drive/folders/1roYPQYStA_qItNUbQVlgJ2_W9C6zRF5e?hl=ID" target="_blank" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-white px-3 py-1.5 rounded-lg border border-emerald-300 shadow-sm inline-flex items-center gap-1.5">
+              <i class="fa-brands fa-google-drive text-sm"></i> Buka Folder Google Drive Tujuan
+            </a>
+          </div>
+
+          <!-- Area Upload File langsung ke Google Drive -->
+          <div class="bg-white p-4 rounded-xl border border-emerald-200 space-y-3">
+            <div class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-cloud-arrow-up text-emerald-600"></i>
+              7. Upload File Berita Acara (BA) / Foto ke Google Drive
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Pilih File (PDF / Gambar / Dokumen)</label>
+                <input type="file" id="ba-file-input" class="w-full text-xs border border-slate-300 rounded-lg p-1.5 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nama Sub-Folder Baru / Tujuan (Opsional)</label>
+                <input type="text" id="ba-subfolder" placeholder="Kosongkan jika langsung di folder utama..." class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white">
+              </div>
+              <div>
+                <button type="button" id="btn-upload-drive" onclick="uploadBaFileToDrive()" class="w-full px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-upload"></i> <span id="btn-upload-text">Upload ke Google Drive</span>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Link / Nama File Berita Acara (Otomatis terisi setelah upload atau ketik manual)</label>
+              <input type="text" id="ba-link" placeholder="Link Google Drive / Nama File BA & Foto..." class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-slate-50">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold mb-1">8. Laporan Pemakaian Aktual (Rp)</label>
+              <input type="number" id="kasbon-used" min="0" value="0" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">9. Status Pekerjaan *</label>
+              <select id="job-status" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white font-bold">
+                <option value="Pending">Pending (On Progress / Menunggu)</option>
+                <option value="Hold">Hold (Ditunda Sementara)</option>
+                <option value="Done">Done (Selesai)</option>
+                <option value="Cancel">Cancel (Dibatalkan)</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1">
+              Keterangan Status Pekerjaan (Maks 50 Kata) <span id="status-word-count" class="text-slate-400 font-normal">(0/50 kata)</span>
+            </label>
+            <textarea id="status-note" rows="2" oninput="validateWords(this, 50, 'status-word-count')" placeholder="Catatan hasil pekerjaan, alasan hold/pending, atau alasan cancel..." class="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white"></textarea>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="cancelEditJob()" class="px-5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold hover:bg-slate-100">Batal</button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow">
+            <i class="fa-solid fa-save mr-1"></i> <span id="submit-job-btn-text">Simpan Data WO / SPK</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ================= TAB 3: MASTER TIM & SUB-DIVISI ================= -->
+    <section id="view-team" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between md:items-center gap-2 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Master Tim, Sub-Divisi & Divisi Marketing</h2>
+            <p class="text-xs text-slate-500">Klik pada <b>Nama Personil</b> atau tombol <b>Matriks (%)</b> untuk melihat rincian Total SPK & WO.</p>
+          </div>
+        </div>
+        
+        <form id="member-form" onsubmit="saveMember(event)" class="grid grid-cols-1 md:grid-cols-6 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 items-end">
+          <input type="hidden" id="edit-member-id" value="">
+          <div class="md:col-span-2">
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1" id="member-form-label">Tambah / Edit Nama Personil</label>
+            <input type="text" id="member-name" required placeholder="Nama Lengkap Personil..." class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Jabatan</label>
+            <select id="member-role" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+              <option value="Teknisi">Teknisi</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Drafter">Drafter</option>
+              <option value="Manager">Manager</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">No. Telepon / WA</label>
+            <input type="text" id="member-phone" required placeholder="0812-xxxx-xxxx" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Sub-Divisi / Divisi</label>
+            <select id="member-subdiv" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white font-semibold">
+              <option value="Fueling System Engineering">Fueling System Engineering</option>
+              <option value="IT Engineering">IT Engineering</option>
+              <option value="Electrical Engineering">Electrical Engineering</option>
+              <option value="Divisi Marketing">Divisi Marketing</option>
+              <option value="Drafter">Drafter</option>
+              <option value="Manager">Manager</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" id="member-submit-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg p-2 text-sm transition">
+              <i class="fa-solid fa-user-plus mr-1"></i> <span id="member-submit-text">Tambah</span>
+            </button>
+            <button type="button" id="member-cancel-btn" onclick="resetMemberForm()" class="hidden px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg text-sm">
+              Batal
+            </button>
+          </div>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left border-collapse">
+            <thead class="bg-slate-800 text-white text-xs uppercase">
+              <tr>
+                <th class="p-3 rounded-tl-lg">Nama Personil (Klik Matriks)</th>
+                <th class="p-3">Jabatan</th>
+                <th class="p-3">No. Telepon</th>
+                <th class="p-3">Divisi / Sub-Divisi</th>
+                <th class="p-3 text-center bg-purple-950">Total SPK Dikerjakan</th>
+                <th class="p-3 text-center bg-blue-950">Total WO Dikerjakan</th>
+                <th class="p-3 text-center">Total Job</th>
+                <th class="p-3 text-center rounded-tr-lg">Aksi (Matriks / Edit / Hapus)</th>
+              </tr>
+            </thead>
+            <tbody id="team-body" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const MAIN_SUB_DIVISIONS = [
+      {
+        name: "Fueling System Engineering",
+        icon: "fa-gas-pump",
+        accent: "amber",
+        ringColor: "#f59e0b",
+        bgSoft: "bg-amber-50",
+        borderSoft: "border-amber-200",
+        textColor: "text-amber-800"
+      },
+      {
+        name: "IT Engineering",
+        icon: "fa-network-wired",
+        accent: "indigo",
+        ringColor: "#6366f1",
+        bgSoft: "bg-indigo-50",
+        borderSoft: "border-indigo-200",
+        textColor: "text-indigo-800"
+      },
+      {
+        name: "Electrical Engineering",
+        icon: "fa-bolt",
+        accent: "emerald",
+        ringColor: "#10b981",
+        bgSoft: "bg-emerald-50",
+        borderSoft: "border-emerald-200",
+        textColor: "text-emerald-800"
+      }
+    ];
+
+    const ALL_SUB_DIVISIONS = [
+      "Fueling System Engineering",
+      "IT Engineering",
+      "Electrical Engineering"
+    ];
+
+    const DEFAULT_TEAM = [
+      { id: 1, name: "Budi Santoso", role: "Supervisor", phone: "0812-3456-7801", subdiv: "Fueling System Engineering" },
+      { id: 2, name: "Andi Pratama", role: "Teknisi", phone: "0812-3456-7802", subdiv: "Fueling System Engineering" },
+      { id: 3, name: "Rizal Hidayat", role: "Supervisor", phone: "0813-9876-5401", subdiv: "IT Engineering" },
+      { id: 4, name: "Dimas Wahyu", role: "Teknisi", phone: "0813-9876-5402", subdiv: "IT Engineering" },
+      { id: 5, name: "Hendra Wijaya", role: "Supervisor", phone: "0815-1122-3301", subdiv: "Electrical Engineering" },
+      { id: 6, name: "Eko Saputra", role: "Teknisi", phone: "0815-1122-3302", subdiv: "Electrical Engineering" },
+      { id: 7, name: "Siska Amelia", role: "Marketing", phone: "0818-9988-7766", subdiv: "Divisi Marketing" }
+    ];
+
+    const DEFAULT_JOBS = [
+      {
+        id: 101,
+        docType: "WO",
+        docNumber: "WO-EXT-2026-089",
+        marketing: "Bagus Pratama",
+        subdiv: "Fueling System Engineering",
+        customer: "PT Pertamina Patra Niaga Regional Jawa Bagian Barat",
+        desc: "Kalibrasi ATG dan perbaikan pompa dispenser pulau 2 dan 3",
+        target: "3 Hari",
+        date: "2026-10-15",
+        techs: [
+          { name: "Andi Pratama", subdiv: "Fueling System Engineering", kasbon: 1500000 },
+          { name: "Eko Saputra", subdiv: "Electrical Engineering", kasbon: 1000000 }
+        ],
+        spdType: "SPD",
+        spdDays: 3,
+        spdDaily: 300000,
+        spdNights: 2,
+        spdHotel: 600000,
+        baLink: "BA_Pertamina_089.pdf & Foto_Lokasi.jpg",
+        kasbonUsed: 4350000,
+        status: "Done",
+        statusNote: "Pekerjaan selesai tepat waktu, ATG dan dispenser berjalan normal sesuai standar tera."
+      },
+      {
+        id: 102,
+        docType: "SPK",
+        docNumber: "SPK/MKT-IT/2026/10/014",
+        marketing: "Siska Amelia",
+        subdiv: "IT Engineering",
+        customer: "PT Krakatau Posco Cilegon",
+        desc: "Instalasi server monitoring jaringan lokal dan integrasi sensor IoT",
+        target: "4 Hari",
+        date: "2026-10-20",
+        techs: [
+          { name: "Dimas Wahyu", subdiv: "IT Engineering", kasbon: 2000000 }
+        ],
+        spdType: "Proyek",
+        spdDays: 0,
+        spdDaily: 0,
+        spdNights: 0,
+        spdHotel: 0,
+        baLink: "Belum Upload",
+        kasbonUsed: 1200000,
+        status: "Pending",
+        statusNote: "Menunggu pembukaan akses firewall dari tim IT internal customer di gedung utama."
+      }
+    ];
+
+    let teamMembers = [];
+    let jobs = [];
+    let activeModalSubdiv = null;
+
+    window.onload = function() {
+      showToast("Memuat data dari Google Sheet...", "success");
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(data) {
+            teamMembers = data.team && data.team.length > 0 ? data.team : DEFAULT_TEAM;
+            jobs = data.jobs && data.jobs.length > 0 ? data.jobs : DEFAULT_JOBS;
+            renderDashboard();
+          })
+          .withFailureHandler(function(err) {
+            showToast("Gagal memuat dari server, menggunakan data lokal.", "error");
+            teamMembers = JSON.parse(JSON.stringify(DEFAULT_TEAM));
+            jobs = JSON.parse(JSON.stringify(DEFAULT_JOBS));
+            renderDashboard();
+          })
+          .getData();
+      } else {
+        teamMembers = JSON.parse(JSON.stringify(DEFAULT_TEAM));
+        jobs = JSON.parse(JSON.stringify(DEFAULT_JOBS));
+        renderDashboard();
+      }
+    };
+
+    function saveToStorage() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function() {
+            console.log("Data tersinkronisasi ke Google Sheet.");
+          })
+          .withFailureHandler(function(err) {
+            showToast("Gagal menyimpan ke Google Sheet!", "error");
+          })
+          .saveData(jobs, teamMembers);
+      } else {
+        console.log("Offline mode: Data saved locally in memory.");
+      }
+    }
+
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      const bg = type === "success" ? "bg-slate-900 border-l-4 border-emerald-500" : "bg-rose-900 border-l-4 border-rose-400";
+      toast.className = `${bg} text-white px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all duration-300`;
+      toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-exclamation text-rose-300'}"></i> <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-2");
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function openConfirmModal(title, message, onConfirm) {
+      document.getElementById("confirm-title").innerText = title;
+      document.getElementById("confirm-message").innerText = message;
+      const modal = document.getElementById("confirm-modal");
+      const yesBtn = document.getElementById("confirm-yes-btn");
+      modal.classList.remove("hidden");
+      yesBtn.onclick = () => {
+        closeConfirmModal();
+        onConfirm();
+      };
+    }
+
+    function closeConfirmModal() {
+      document.getElementById("confirm-modal").classList.add("hidden");
+    }
+
+    function formatRupiah(num) {
+      return "Rp " + Number(num || 0).toLocaleString("id-ID");
+    }
+
+    function getJobSpdTotal(job) {
+      if (job.spdType === "Proyek") return 0;
+      const days = Number(job.spdDays || 0);
+      const daily = Number(job.spdDaily || 0);
+      const nights = Number(job.spdNights || 0);
+      const hotel = Number(job.spdHotel || 0);
+      return (days * daily) + (nights * hotel);
+    }
+
+    function toggleSpdMode() {
+      const spdType = document.getElementById("spd-type").value;
+      const spdFields = document.getElementById("spd-fields");
+      const subtitleInfo = document.getElementById("spd-subtitle-info");
+      if (spdType === "Proyek") {
+        spdFields.classList.add("hidden");
+        subtitleInfo.innerText = "Mode Proyek aktif: Kolom perhitungan Hari, SPD Harian, Malam, dan Hotel disembunyikan.";
+        document.getElementById("spd-days").value = 0;
+        document.getElementById("spd-daily").value = 0;
+        document.getElementById("spd-nights").value = 0;
+        document.getElementById("spd-hotel").value = 0;
+        calculateSpdTotal();
+      } else {
+        spdFields.classList.remove("hidden");
+        subtitleInfo.innerText = "Rumus Otomatis: Total Uang SPD = (Jumlah Hari × SPD Harian) + (Biaya Hotel × Malam)";
+        calculateSpdTotal();
+      }
+    }
+
+    function calculateSpdTotal() {
+      const spdType = document.getElementById("spd-type").value;
+      if (spdType === "Proyek") {
+        document.getElementById("spd-total-display").innerText = formatRupiah(0);
+        return 0;
+      }
+      const days = Number(document.getElementById("spd-days").value || 0);
+      const daily = Number(document.getElementById("spd-daily").value || 0);
+      const nights = Number(document.getElementById("spd-nights").value || 0);
+      const hotel = Number(document.getElementById("spd-hotel").value || 0);
+      const total = (days * daily) + (nights * hotel);
+      document.getElementById("spd-total-display").innerText = formatRupiah(total);
+      return total;
+    }
+
+    function uploadBaFileToDrive() {
+      const fileInput = document.getElementById("ba-file-input");
+      const subfolder = document.getElementById("ba-subfolder").value.trim();
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showToast("Pilih file BA / Foto terlebih dahulu sebelum upload!", "error");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const btnText = document.getElementById("btn-upload-text");
+      const btn = document.getElementById("btn-upload-drive");
+      btnText.innerText = "Mengupload...";
+      btn.disabled = true;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result;
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              btnText.innerText = "Upload ke Google Drive";
+              btn.disabled = false;
+              if (res && res.success) {
+                document.getElementById("ba-link").value = res.fileUrl;
+                showToast(`File "${res.fileName}" berhasil diupload ke folder "${res.folderName}"!`);
+              } else {
+                showToast("Gagal upload: " + (res ? res.error : "Unknown error"), "error");
+              }
+            })
+            .withFailureHandler(function(err) {
+              btnText.innerText = "Upload ke Google Drive";
+              btn.disabled = false;
+              showToast("Error server saat upload: " + err.message, "error");
+            })
+            .uploadFileToDrive(base64Data, file.name, file.type, subfolder);
+        } else {
+          setTimeout(() => {
+            btnText.innerText = "Upload ke Google Drive";
+            btn.disabled = false;
+            const folderInfo = subfolder ? `/${subfolder}` : "";
+            document.getElementById("ba-link").value = `https://drive.google.com/drive/folders/1roYPQYStA_qItNUbQVlgJ2_W9C6zRF5e${folderInfo} (${file.name})`;
+            showToast(`Simulasi Preview: "${file.name}" siap disimpan ke Google Drive!`);
+          }, 800);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function validateWords(el, maxWords, counterId) {
+      const words = el.value.trim().split(/\s+/).filter(Boolean);
+      if (words.length > maxWords) {
+        el.value = words.slice(0, maxWords).join(" ");
+      }
+      const currentCount = el.value.trim().split(/\s+/).filter(Boolean).length;
+      document.getElementById(counterId).innerText = `(${currentCount}/${maxWords} kata)`;
+    }
+
+    function switchTab(tab) {
+      ["dashboard", "input", "team"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add("hidden");
+        document.getElementById(`tab-${t}`).className = "px-4 py-2 rounded-xl text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition";
+      });
+      document.getElementById(`view-${tab}`).classList.remove("hidden");
+      document.getElementById(`tab-${tab}`).className = "px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white transition";
+      if (tab === "input") {
+        renderTechCheckboxes();
+        toggleSpdMode();
+      }
+      if (tab === "team") renderTeamTable();
+      if (tab === "dashboard") renderDashboard();
+    }
+
+    function openInputTabNew(defaultSubdiv = null) {
+      resetJobForm();
+      if (defaultSubdiv) {
+        document.getElementById("primary-subdiv").value = defaultSubdiv;
+      }
+      switchTab("input");
+    }
+
+    function renderTechCheckboxes(selectedTechs = []) {
+      const container = document.getElementById("tech-selection-list");
+      container.innerHTML = teamMembers.map(m => {
+        const found = selectedTechs.find(t => t.name === m.name);
+        const checked = found ? "checked" : "";
+        const kasbonVal = found ? found.kasbon : "";
+        return `
+          <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col gap-2 shadow-sm">
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" name="tech-check" value="${m.id}" ${checked} class="mt-1 rounded text-blue-600">
+              <div>
+                <div class="font-bold text-xs text-slate-800">${m.name} <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">${m.role}</span></div>
+                <div class="text-[11px] text-blue-600 font-medium">${m.subdiv}</div>
+                <div class="text-[11px] text-slate-400">${m.phone}</div>
+              </div>
+            </label>
+            <input type="number" id="kasbon-tech-${m.id}" min="0" value="${kasbonVal}" placeholder="Kasbon Rp (Jika ada)" class="border border-slate-200 rounded-lg p-1.5 text-xs w-full">
+          </div>
+        `;
+      }).join("");
+    }
+
+    function resetJobForm() {
+      document.getElementById("job-form").reset();
+      document.getElementById("edit-job-id").value = "";
+      document.getElementById("form-mode-badge").innerText = "Mode Input Baru";
+      document.getElementById("form-mode-badge").className = "text-[11px] font-bold uppercase px-2.5 py-0.5 rounded bg-blue-100 text-blue-700";
+      document.getElementById("form-title").innerText = "Form Input WO / SPK";
+      document.getElementById("submit-job-btn-text").innerText = "Simpan Data WO / SPK";
+      document.getElementById("tab-input-label").innerText = "Input WO / SPK";
+      document.getElementById("cust-word-count").innerText = "(0/30 kata)";
+      document.getElementById("desc-word-count").innerText = "(0/50 kata)";
+      document.getElementById("status-word-count").innerText = "(0/50 kata)";
+      renderTechCheckboxes([]);
+      toggleSpdMode();
+    }
+
+    function cancelEditJob() {
+      resetJobForm();
+      switchTab("dashboard");
+    }
+
+    function editJob(id) {
+      const job = jobs.find(j => j.id === id);
+      if (!job) return;
+
+      closeSubdivModal();
+      closeJobDetailModal();
+      closeMemberMatrixModal();
+      switchTab("input");
+
+      document.getElementById("edit-job-id").value = job.id;
+      document.getElementById("form-mode-badge").innerText = "Mode Edit Data";
+      document.getElementById("form-mode-badge").className = "text-[11px] font-bold uppercase px-2.5 py-0.5 rounded bg-amber-100 text-amber-800";
+      document.getElementById("form-title").innerText = `Edit Data ${job.docType}: ${job.docNumber}`;
+      document.getElementById("submit-job-btn-text").innerText = "Simpan Perubahan WO / SPK";
+      document.getElementById("tab-input-label").innerText = "Edit WO / SPK";
+
+      document.getElementById("doc-type").value = job.docType;
+      document.getElementById("doc-number").value = job.docNumber;
+      document.getElementById("marketing-name").value = job.marketing === "-" ? "" : job.marketing;
+      document.getElementById("primary-subdiv").value = ALL_SUB_DIVISIONS.includes(job.subdiv) ? job.subdiv : "Fueling System Engineering";
+      document.getElementById("job-target").value = job.target;
+      document.getElementById("job-date").value = job.date;
+      document.getElementById("customer-name").value = job.customer;
+      document.getElementById("job-desc").value = job.desc;
+
+      validateWords(document.getElementById("customer-name"), 30, "cust-word-count");
+      validateWords(document.getElementById("job-desc"), 50, "desc-word-count");
+
+      renderTechCheckboxes(job.techs || []);
+
+      document.getElementById("spd-type").value = (job.spdType === "Proyek") ? "Proyek" : "SPD";
+      document.getElementById("spd-days").value = job.spdDays || 0;
+      document.getElementById("spd-daily").value = job.spdDaily || 0;
+      document.getElementById("spd-nights").value = job.spdNights || 0;
+      document.getElementById("spd-hotel").value = job.spdHotel || 0;
+      toggleSpdMode();
+
+      document.getElementById("ba-link").value = job.baLink === "Belum Upload" ? "" : job.baLink;
+      document.getElementById("kasbon-used").value = job.kasbonUsed || 0;
+      document.getElementById("job-status").value = job.status;
+      document.getElementById("status-note").value = job.statusNote === "-" ? "" : job.statusNote;
+      validateWords(document.getElementById("status-note"), 50, "status-word-count");
+    }
+
+    function saveJob(e) {
+      e.preventDefault();
+      const checkedTechs = Array.from(document.querySelectorAll('input[name="tech-check"]:checked')).map(cb => {
+        const member = teamMembers.find(m => m.id === Number(cb.value));
+        const kasbonVal = Number(document.getElementById(`kasbon-tech-${member.id}`).value || 0);
+        return { name: member.name, subdiv: member.subdiv, kasbon: kasbonVal };
+      });
+
+      if (checkedTechs.length === 0) {
+        showToast("Pilih minimal 1 Personil/Teknisi yang bertugas!", "error");
+        return;
+      }
+
+      const editId = document.getElementById("edit-job-id").value;
+      const spdTypeVal = document.getElementById("spd-type").value;
+      const payload = {
+        id: editId ? Number(editId) : Date.now(),
+        docType: document.getElementById("doc-type").value,
+        docNumber: document.getElementById("doc-number").value.trim(),
+        marketing: document.getElementById("marketing-name").value.trim() || "-",
+        subdiv: document.getElementById("primary-subdiv").value,
+        customer: document.getElementById("customer-name").value.trim(),
+        desc: document.getElementById("job-desc").value.trim(),
+        target: document.getElementById("job-target").value.trim(),
+        date: document.getElementById("job-date").value,
+        techs: checkedTechs,
+        spdType: spdTypeVal,
+        spdDays: spdTypeVal === "Proyek" ? 0 : Number(document.getElementById("spd-days").value || 0),
+        spdDaily: spdTypeVal === "Proyek" ? 0 : Number(document.getElementById("spd-daily").value || 0),
+        spdNights: spdTypeVal === "Proyek" ? 0 : Number(document.getElementById("spd-nights").value || 0),
+        spdHotel: spdTypeVal === "Proyek" ? 0 : Number(document.getElementById("spd-hotel").value || 0),
+        baLink: document.getElementById("ba-link").value.trim() || "Belum Upload",
+        kasbonUsed: Number(document.getElementById("kasbon-used").value || 0),
+        status: document.getElementById("job-status").value,
+        statusNote: document.getElementById("status-note").value.trim() || "-"
+      };
+
+      if (editId) {
+        const idx = jobs.findIndex(j => j.id === Number(editId));
+        if (idx !== -1) jobs[idx] = payload;
+        showToast(`Data ${payload.docNumber} berhasil diperbarui!`);
+      } else {
+        jobs.unshift(payload);
+        showToast(`Data ${payload.docNumber} berhasil ditambahkan!`);
+      }
+
+      saveToStorage();
+      resetJobForm();
+      switchTab("dashboard");
+    }
+
+    function deleteJob(id) {
+      const job = jobs.find(j => j.id === id);
+      if (!job) return;
+      openConfirmModal(
+        "Hapus Data WO / SPK",
+        `Apakah Anda yakin ingin menghapus dokumen ${job.docNumber} (${job.customer})?`,
+        () => {
+          jobs = jobs.filter(j => j.id !== id);
+          saveToStorage();
+          closeJobDetailModal();
+          renderDashboard();
+          if (activeModalSubdiv) openSubdivModal(activeModalSubdiv);
+          showToast(`Dokumen ${job.docNumber} telah dihapus.`);
+        }
+      );
+    }
+
+    function openJobDetailModal(id) {
+      const job = jobs.find(j => j.id === id);
+      if (!job) return;
+
+      closeMemberMatrixModal();
+      closeSubdivModal();
+
+      const badge = document.getElementById("detail-doc-badge");
+      badge.innerText = job.docType;
+      badge.className = `px-3 py-1 rounded-lg text-xs font-extrabold uppercase ${job.docType === 'WO' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'}`;
+
+      document.getElementById("detail-doc-number").innerText = job.docNumber;
+      document.getElementById("detail-subdiv-date").innerText = `${job.subdiv} • Jadwal Pelaksanaan: ${job.date} • Target: ${job.target}`;
+
+      const totalKasbonTech = job.techs.reduce((sum, t) => sum + Number(t.kasbon || 0), 0);
+      const totalSpd = getJobSpdTotal(job);
+      const totalPengajuan = totalKasbonTech + totalSpd;
+      const realisasi = Number(job.kasbonUsed || 0);
+      const selisih = totalPengajuan - realisasi;
+
+      const statusBadge = job.status === "Done" ? "bg-emerald-100 text-emerald-800 border-emerald-300" :
+                          job.status === "Pending" ? "bg-amber-100 text-amber-800 border-amber-300" :
+                          job.status === "Hold" ? "bg-indigo-100 text-indigo-800 border-indigo-300" :
+                          "bg-rose-100 text-rose-800 border-rose-300";
+
+      const baHtml = job.baLink && job.baLink.startsWith("http")
+        ? `<a href="${job.baLink}" target="_blank" class="text-blue-600 font-bold underline ml-1">Buka File di Google Drive</a>`
+        : `<span class="text-blue-600 font-bold underline ml-1">${job.baLink}</span>`;
+
+      document.getElementById("job-detail-content").innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <span class="text-[10px] font-bold uppercase text-slate-400">Nama Marketing</span>
+            <div class="text-sm font-bold text-purple-700 mt-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-user-tie"></i> ${job.marketing}
+            </div>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <span class="text-[10px] font-bold uppercase text-slate-400">Nama Customer</span>
+            <div class="text-sm font-bold text-slate-800 mt-1">${job.customer}</div>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+            <span class="text-[10px] font-bold uppercase text-slate-400">Status Pekerjaan</span>
+            <div class="mt-1">
+              <span class="px-3 py-1 rounded-full text-xs font-extrabold border ${statusBadge}">${job.status}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <h4 class="text-xs font-bold uppercase text-slate-500 mb-1"><i class="fa-solid fa-clipboard-list text-blue-600 mr-1"></i> Uraian Pekerjaan</h4>
+            <p class="text-sm text-slate-800 font-medium">${job.desc}</p>
+            <div class="mt-2 text-xs text-blue-600 font-semibold">Target Durasi: ${job.target} | Tanggal: ${job.date}</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <h4 class="text-xs font-bold uppercase text-slate-500 mb-1"><i class="fa-solid fa-comment-dots text-emerald-600 mr-1"></i> Catatan Status & Bukti BA</h4>
+            <p class="text-sm text-slate-700">${job.statusNote}</p>
+            <div class="mt-2 pt-2 border-t border-slate-100 text-xs">
+              <span class="font-semibold text-slate-500">File BA & Foto:</span>
+              ${baHtml}
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-200">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-xs font-bold uppercase text-blue-900"><i class="fa-solid fa-users-gear mr-1"></i> Tim Bertugas & Kasbon</h4>
+            <span class="text-xs font-extrabold text-blue-800">Total Kasbon Tim: ${formatRupiah(totalKasbonTech)}</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            ${job.techs.map(t => `
+              <div class="bg-white p-3 rounded-lg border border-blue-100 flex justify-between items-center shadow-sm">
+                <div>
+                  <div class="text-xs font-bold text-slate-800">${t.name}</div>
+                  <div class="text-[11px] text-slate-500">${t.subdiv}</div>
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] uppercase text-slate-400 block">Kasbon</span>
+                  <span class="text-xs font-extrabold text-blue-700">${formatRupiah(t.kasbon)}</span>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+
+        <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
+          <div class="flex justify-between items-center">
+            <h4 class="text-xs font-bold uppercase text-amber-900"><i class="fa-solid fa-route mr-1"></i> Kategori Dinas (${job.spdType}) & Finansial</h4>
+            <span class="px-2.5 py-0.5 rounded bg-amber-200 text-amber-900 text-xs font-extrabold">${job.spdType}</span>
+          </div>
+          ${job.spdType === 'Proyek' ? `<div class="text-xs text-amber-800 font-semibold">Pekerjaan kategori Proyek (Tanpa rincian harian SPD/Hotel).</div>` : `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="bg-white p-3 rounded-lg border border-amber-100">
+                <span class="text-[10px] text-slate-400 uppercase font-bold">Uang Harian</span>
+                <div class="font-bold text-slate-800 mt-0.5">${job.spdDays} Hari × ${formatRupiah(job.spdDaily)}</div>
+                <div class="text-amber-700 font-extrabold mt-0.5">= ${formatRupiah(job.spdDays * job.spdDaily)}</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg border border-amber-100">
+                <span class="text-[10px] text-slate-400 uppercase font-bold">Hotel</span>
+                <div class="font-bold text-slate-800 mt-0.5">${job.spdNights} Malam × ${formatRupiah(job.spdHotel)}</div>
+                <div class="text-amber-700 font-extrabold mt-0.5">= ${formatRupiah(job.spdNights * job.spdHotel)}</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg border border-amber-100">
+                <span class="text-[10px] text-slate-400 uppercase font-bold">Total Uang SPD</span>
+                <div class="text-sm font-extrabold text-amber-800 mt-1">${formatRupiah(totalSpd)}</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg border border-amber-100">
+                <span class="text-[10px] text-slate-400 uppercase font-bold">Total Pengajuan</span>
+                <div class="text-sm font-extrabold text-blue-700 mt-1">${formatRupiah(totalPengajuan)}</div>
+              </div>
+            </div>
+          `}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div class="bg-emerald-100/70 border border-emerald-300 p-3 rounded-lg flex justify-between items-center">
+              <span class="text-xs font-bold text-emerald-900">Realisasi Aktual:</span>
+              <span class="text-sm font-extrabold text-emerald-900">${formatRupiah(realisasi)}</span>
+            </div>
+            <div class="bg-white border border-slate-200 p-3 rounded-lg flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700">${selisih >= 0 ? 'Sisa Dana:' : 'Kurang Bayar:'}</span>
+              <span class="text-sm font-extrabold ${selisih >= 0 ? 'text-blue-700' : 'text-rose-600'}">${formatRupiah(Math.abs(selisih))}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("detail-edit-btn").onclick = () => editJob(job.id);
+      document.getElementById("detail-delete-btn").onclick = () => deleteJob(job.id);
+      document.getElementById("job-detail-modal").classList.remove("hidden");
+    }
+
+    function closeJobDetailModal() {
+      document.getElementById("job-detail-modal").classList.add("hidden");
+    }
+
+    function quickChangeStatus(id, newStatus) {
+      const job = jobs.find(j => j.id === id);
+      if (!job) return;
+      job.status = newStatus;
+      saveToStorage();
+      renderDashboard();
+      if (activeModalSubdiv) openSubdivModal(activeModalSubdiv);
+      showToast(`Status ${job.docNumber} diubah menjadi ${newStatus}`);
+    }
+
+    function renderTeamTable() {
+      const tbody = document.getElementById("team-body");
+      tbody.innerHTML = teamMembers.map(m => {
+        const roleBadge = m.role === 'Manager' ? 'bg-amber-100 text-amber-800 font-bold' :
+                          m.role === 'Supervisor' ? 'bg-purple-100 text-purple-800 font-bold' :
+                          m.role === 'Drafter' ? 'bg-indigo-100 text-indigo-800 font-semibold' :
+                          m.role === 'Marketing' ? 'bg-purple-100 text-purple-700 font-bold' :
+                          'bg-slate-100 text-slate-700';
+
+        const memberJobs = jobs.filter(j => j.techs.some(t => t.name === m.name));
+        const spkCount = memberJobs.filter(j => j.docType === "SPK").length;
+        const woCount = memberJobs.filter(j => j.docType === "WO").length;
+        const totalJobs = memberJobs.length;
+
+        return `
+          <tr class="hover:bg-blue-50/40 transition">
+            <td class="p-3">
+              <button onclick="openMemberMatrixModal(${m.id})" class="font-bold text-slate-800 hover:text-blue-600 text-left flex items-center gap-2 group">
+                <span class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-extrabold group-hover:bg-blue-600 group-hover:text-white transition">
+                  <i class="fa-solid fa-chart-pie"></i>
+                </span>
+                <span class="underline decoration-dotted">${m.name}</span>
+              </button>
+            </td>
+            <td class="p-3"><span class="px-2.5 py-0.5 rounded-full text-xs ${roleBadge}">${m.role}</span></td>
+            <td class="p-3 text-slate-600">${m.phone}</td>
+            <td class="p-3 font-semibold text-blue-700">${m.subdiv}</td>
+            <td class="p-3 text-center">
+              <span onclick="openMemberMatrixModal(${m.id})" class="cursor-pointer px-3 py-1 rounded-lg bg-purple-100 text-purple-800 font-extrabold text-xs hover:bg-purple-200">
+                ${spkCount} SPK
+              </span>
+            </td>
+            <td class="p-3 text-center">
+              <span onclick="openMemberMatrixModal(${m.id})" class="cursor-pointer px-3 py-1 rounded-lg bg-blue-100 text-blue-800 font-extrabold text-xs hover:bg-blue-200">
+                ${woCount} WO
+              </span>
+            </td>
+            <td class="p-3 text-center font-extrabold text-slate-800">${totalJobs}</td>
+            <td class="p-3 text-center whitespace-nowrap space-x-1">
+              <button onclick="openMemberMatrixModal(${m.id})" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm">
+                <i class="fa-solid fa-chart-column mr-1"></i> Matriks (%)
+              </button>
+              <button onclick="editMember(${m.id})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold border border-amber-200">
+                <i class="fa-solid fa-pen-to-square"></i> Edit
+              </button>
+              <button onclick="deleteMember(${m.id})" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold border border-rose-200">
+                <i class="fa-solid fa-trash"></i> Hapus
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function openMemberMatrixModal(memberId) {
+      const m = teamMembers.find(item => item.id === memberId);
+      if (!m) return;
+
+      document.getElementById("member-modal-title").innerText = m.name;
+      document.getElementById("member-modal-subtitle").innerText = `${m.role} • ${m.subdiv} • WA/Telp: ${m.phone}`;
+
+      const memberJobs = jobs.filter(j => j.techs.some(t => t.name === m.name));
+      const total = memberJobs.length;
+      const spkCount = memberJobs.filter(j => j.docType === "SPK").length;
+      const woCount = memberJobs.filter(j => j.docType === "WO").length;
+
+      const doneCount = memberJobs.filter(j => j.status === "Done").length;
+      const pendingCount = memberJobs.filter(j => j.status === "Pending").length;
+      const holdCount = memberJobs.filter(j => j.status === "Hold").length;
+      const cancelCount = memberJobs.filter(j => j.status === "Cancel").length;
+
+      const totalKasbonReceived = memberJobs.reduce((acc, j) => {
+        const techObj = j.techs.find(t => t.name === m.name);
+        return acc + (techObj ? Number(techObj.kasbon || 0) : 0);
+      }, 0);
+
+      document.getElementById("member-matrix-content").innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="bg-slate-900 text-white p-4 rounded-xl">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Pekerjaan</span>
+            <div class="text-2xl font-extrabold mt-1">${total} Job</div>
+          </div>
+          <div class="bg-purple-50 border border-purple-200 p-4 rounded-xl">
+            <span class="text-[10px] uppercase tracking-wider text-purple-700 font-bold">Total SPK Dikerjakan</span>
+            <div class="text-2xl font-extrabold text-purple-700 mt-1">${spkCount} SPK</div>
+            <div class="text-xs font-bold text-purple-600 mt-0.5">${calcPct(spkCount, total)}</div>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+            <span class="text-[10px] uppercase tracking-wider text-blue-700 font-bold">Total WO Dikerjakan</span>
+            <div class="text-2xl font-extrabold text-blue-700 mt-1">${woCount} WO</div>
+            <div class="text-xs font-bold text-blue-600 mt-0.5">${calcPct(woCount, total)}</div>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+            <span class="text-[10px] uppercase tracking-wider text-amber-800 font-bold">Akumulasi Kasbon</span>
+            <div class="text-lg font-extrabold text-amber-900 mt-1">${formatRupiah(totalKasbonReceived)}</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+          <h4 class="text-xs font-bold uppercase text-slate-700">Matriks Status Pekerjaan (${m.name}) dalam Persentase (%)</h4>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div class="bg-white p-3 rounded-xl border border-emerald-200">
+              <div class="text-lg font-extrabold text-emerald-600">${doneCount} <span class="text-xs">(${calcPct(doneCount, total)})</span></div>
+              <div class="text-xs font-bold text-slate-600">Done</div>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-amber-200">
+              <div class="text-lg font-extrabold text-amber-600">${pendingCount} <span class="text-xs">(${calcPct(pendingCount, total)})</span></div>
+              <div class="text-xs font-bold text-slate-600">Pending</div>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-indigo-200">
+              <div class="text-lg font-extrabold text-indigo-600">${holdCount} <span class="text-xs">(${calcPct(holdCount, total)})</span></div>
+              <div class="text-xs font-bold text-slate-600">Hold</div>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-rose-200">
+              <div class="text-lg font-extrabold text-rose-600">${cancelCount} <span class="text-xs">(${calcPct(cancelCount, total)})</span></div>
+              <div class="text-xs font-bold text-slate-600">Cancel</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold uppercase text-slate-700">Daftar Riwayat WO & SPK</h4>
+          ${memberJobs.length === 0 ? `<div class="p-8 text-center bg-slate-50 rounded-xl text-slate-400 text-xs font-semibold">Belum ada penugasan.</div>` : `
+            <div class="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden">
+              ${memberJobs.map(j => {
+                const techInfo = j.techs.find(t => t.name === m.name);
+                return `
+                  <div class="p-3 bg-white hover:bg-slate-50 flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-xs">
+                    <div>
+                      <span class="px-2 py-0.5 rounded font-bold text-[10px] ${j.docType === 'WO' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">${j.docType}</span>
+                      <button onclick="openJobDetailModal(${j.id})" class="font-extrabold text-blue-600 hover:underline ml-1">${j.docNumber}</button>
+                      <span class="text-slate-400 ml-1">• ${j.date}</span>
+                      <div class="font-semibold text-slate-800 mt-0.5">${j.customer}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-1 bg-slate-100 rounded font-bold text-slate-700">Kasbon: ${formatRupiah(techInfo ? techInfo.kasbon : 0)}</span>
+                      <span class="px-2.5 py-1 rounded-full font-bold ${j.status === 'Done' ? 'bg-emerald-100 text-emerald-800' : j.status === 'Pending' ? 'bg-amber-100 text-amber-800' : j.status === 'Hold' ? 'bg-indigo-100 text-indigo-800' : 'bg-rose-100 text-rose-800'}">${j.status}</span>
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          `}
+        </div>
+      `;
+
+      document.getElementById("member-matrix-modal").classList.remove("hidden");
+    }
+
+    function closeMemberMatrixModal() {
+      document.getElementById("member-matrix-modal").classList.add("hidden");
+    }
+
+    function saveMember(e) {
+      e.preventDefault();
+      const editId = document.getElementById("edit-member-id").value;
+      const nameVal = document.getElementById("member-name").value.trim();
+      const roleVal = document.getElementById("member-role").value;
+      const phoneVal = document.getElementById("member-phone").value.trim();
+      const subdivVal = document.getElementById("member-subdiv").value;
+
+      if (editId) {
+        const idx = teamMembers.findIndex(m => m.id === Number(editId));
+        if (idx !== -1) {
+          const oldName = teamMembers[idx].name;
+          teamMembers[idx] = { id: Number(editId), name: nameVal, role: roleVal, phone: phoneVal, subdiv: subdivVal };
+          jobs.forEach(j => {
+            j.techs.forEach(t => {
+              if (t.name === oldName) {
+                t.name = nameVal;
+                t.subdiv = subdivVal;
+              }
+            });
+          });
+          showToast(`Data personil ${nameVal} diperbarui!`);
+        }
+      } else {
+        teamMembers.push({ id: Date.now(), name: nameVal, role: roleVal, phone: phoneVal, subdiv: subdivVal });
+        showToast(`Personil ${nameVal} ditambahkan!`);
+      }
+
+      saveToStorage();
+      resetMemberForm();
+      renderTeamTable();
+    }
+
+    function editMember(id) {
+      const m = teamMembers.find(item => item.id === id);
+      if (!m) return;
+      document.getElementById("edit-member-id").value = m.id;
+      document.getElementById("member-name").value = m.name;
+      document.getElementById("member-role").value = m.role;
+      document.getElementById("member-phone").value = m.phone;
+      document.getElementById("member-subdiv").value = m.subdiv;
+
+      document.getElementById("member-form-label").innerText = `Edit Personil: ${m.name}`;
+      document.getElementById("member-submit-text").innerText = "Update";
+      document.getElementById("member-submit-btn").className = "flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg p-2 text-sm transition";
+      document.getElementById("member-cancel-btn").classList.remove("hidden");
+    }
+
+    function resetMemberForm() {
+      document.getElementById("member-form").reset();
+      document.getElementById("edit-member-id").value = "";
+      document.getElementById("member-form-label").innerText = "Tambah / Edit Nama Personil";
+      document.getElementById("member-submit-text").innerText = "Tambah";
+      document.getElementById("member-submit-btn").className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg p-2 text-sm transition";
+      document.getElementById("member-cancel-btn").classList.add("hidden");
+    }
+
+    function deleteMember(id) {
+      const m = teamMembers.find(item => item.id === id);
+      if (!m) return;
+      openConfirmModal("Hapus Personil", `Apakah Anda yakin ingin menghapus ${m.name}?`, () => {
+        teamMembers = teamMembers.filter(item => item.id !== id);
+        saveToStorage();
+        renderTeamTable();
+        showToast(`Personil ${m.name} telah dihapus.`);
+      });
+    }
+
+    function populateMarketingDropdown() {
+      const select = document.getElementById("rekap-marketing");
+      const currentVal = select.value;
+      const jobMkt = jobs.map(j => j.marketing).filter(m => m && m !== "-");
+      const teamMkt = teamMembers.filter(m => m.subdiv === "Divisi Marketing" || m.role === "Marketing").map(m => m.name);
+      const names = Array.from(new Set([...jobMkt, ...teamMkt])).sort();
+      select.innerHTML = `<option value="ALL">Semua Marketing</option>` + names.map(n => `<option value="${n}">${n}</option>`).join("");
+      if (names.includes(currentVal)) select.value = currentVal;
+    }
+
+    function resetRecapFilters() {
+      document.getElementById("rekap-month").value = "ALL";
+      document.getElementById("rekap-year").value = "ALL";
+      document.getElementById("rekap-marketing").value = "ALL";
+      document.getElementById("rekap-subdiv").value = "ALL";
+      document.getElementById("search-doc").value = "";
+      document.getElementById("search-customer").value = "";
+      document.getElementById("search-marketing").value = "";
+      document.getElementById("filter-status").value = "ALL";
+      renderDashboard();
+      showToast("Filter rekapitulasi & pencarian di-reset.");
+    }
+
+    function getFilteredByRecap() {
+      const fMonth = document.getElementById("rekap-month").value;
+      const fYear = document.getElementById("rekap-year").value;
+      const fMkt = document.getElementById("rekap-marketing").value;
+      const fSub = document.getElementById("rekap-subdiv").value;
+
+      return jobs.filter(j => {
+        const [year, month] = (j.date || "").split("-");
+        const matchMonth = fMonth === "ALL" || month === fMonth;
+        const matchYear = fYear === "ALL" || year === fYear;
+        const matchMkt = fMkt === "ALL" || j.marketing === fMkt;
+        const matchSub = fSub === "ALL" || j.subdiv === fSub;
+        return matchMonth && matchYear && matchMkt && matchSub;
+      });
+    }
+
+    function calcPct(part, total) {
+      if (!total) return "0%";
+      return Math.round((part / total) * 100) + "%";
+    }
+
+    function renderCircularSubdivisions(recapJobs) {
+      const container = document.getElementById("circular-subdiv-container");
+      container.innerHTML = MAIN_SUB_DIVISIONS.map((sub, idx) => {
+        const subJobs = recapJobs.filter(j => j.subdiv === sub.name);
+        const total = subJobs.length;
+        const woCount = subJobs.filter(j => j.docType === "WO").length;
+        const spkCount = subJobs.filter(j => j.docType === "SPK").length;
+        const done = subJobs.filter(j => j.status === "Done").length;
+        const pending = subJobs.filter(j => j.status === "Pending").length;
+        const hold = subJobs.filter(j => j.status === "Hold").length;
+        const cancel = subJobs.filter(j => j.status === "Cancel").length;
+
+        const pDone = total ? (done / total) * 100 : 0;
+        const pPending = total ? (pending / total) * 100 : 0;
+        const pHold = total ? (hold / total) * 100 : 0;
+        const stop1 = pDone;
+        const stop2 = stop1 + pPending;
+        const stop3 = stop2 + pHold;
+
+        const gradientStyle = total === 0 ? `conic-gradient(#e2e8f0 0% 100%)` : `conic-gradient(#10b981 0% ${stop1}%, #f59e0b ${stop1}% ${stop2}%, #6366f1 ${stop2}% ${stop3}%, #f43f5e ${stop3}% 100%)`;
+
+        return `
+          <div onclick="openSubdivModal('${sub.name}')" class="cursor-pointer group ${sub.bgSoft} border-2 ${sub.borderSoft} hover:border-blue-500 rounded-2xl p-5 transition-all duration-200 hover:shadow-lg flex flex-col items-center text-center relative">
+            <span class="absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded-full bg-white text-blue-600 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition">
+              <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
+            </span>
+            <div class="text-xs font-extrabold uppercase tracking-wider ${sub.textColor} mb-3">${idx + 1}. ${sub.name}</div>
+            <div class="w-40 h-40 rounded-full p-3.5 shadow-inner flex items-center justify-center transition-transform group-hover:scale-105" style="background: ${gradientStyle};">
+              <div class="w-full h-full bg-white rounded-full flex flex-col items-center justify-center shadow-sm p-2">
+                <i class="fa-solid ${sub.icon} text-lg ${sub.textColor} mb-0.5"></i>
+                <span class="text-2xl font-extrabold text-slate-800 leading-none">${total}</span>
+                <span class="text-[10px] font-bold uppercase text-slate-400">Total Job</span>
+                <div class="flex gap-1.5 mt-1 text-[11px] font-extrabold">
+                  <span class="text-blue-600">${woCount} WO</span>
+                  <span class="text-slate-300">|</span>
+                  <span class="text-purple-600">${spkCount} SPK</span>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 w-full mt-4 pt-3 border-t border-slate-200/80 text-[11px]">
+              <div class="bg-white/90 rounded-lg p-1.5"><div class="font-bold text-emerald-600">${done}</div><div class="text-[10px] text-slate-500">Done ${calcPct(done, total)}</div></div>
+              <div class="bg-white/90 rounded-lg p-1.5"><div class="font-bold text-amber-600">${pending}</div><div class="text-[10px] text-slate-500">Pend ${calcPct(pending, total)}</div></div>
+              <div class="bg-white/90 rounded-lg p-1.5"><div class="font-bold text-indigo-600">${hold}</div><div class="text-[10px] text-slate-500">Hold ${calcPct(hold, total)}</div></div>
+              <div class="bg-white/90 rounded-lg p-1.5"><div class="font-bold text-rose-600">${cancel}</div><div class="text-[10px] text-slate-500">Cncl ${calcPct(cancel, total)}</div></div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function openSubdivModal(subdivName) {
+      activeModalSubdiv = subdivName;
+      const modal = document.getElementById("subdiv-modal");
+      document.getElementById("modal-subdiv-title").innerText = subdivName;
+
+      const subJobs = jobs.filter(j => j.subdiv === subdivName);
+      const woCount = subJobs.filter(j => j.docType === "WO").length;
+      const spkCount = subJobs.filter(j => j.docType === "SPK").length;
+      const done = subJobs.filter(j => j.status === "Done").length;
+      const pending = subJobs.filter(j => j.status === "Pending").length;
+      const hold = subJobs.filter(j => j.status === "Hold").length;
+      const cancel = subJobs.filter(j => j.status === "Cancel").length;
+
+      document.getElementById("modal-subdiv-stats").innerHTML = `
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200"><div class="text-xs text-slate-400 font-bold">WO</div><div class="text-xl font-extrabold text-blue-600">${woCount}</div></div>
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200"><div class="text-xs text-slate-400 font-bold">SPK</div><div class="text-xl font-extrabold text-purple-600">${spkCount}</div></div>
+        <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200"><div class="text-xs text-emerald-700 font-bold">Done</div><div class="text-lg font-extrabold text-emerald-700">${done}</div></div>
+        <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200"><div class="text-xs text-amber-700 font-bold">Pending</div><div class="text-lg font-extrabold text-amber-700">${pending}</div></div>
+        <div class="bg-indigo-50 p-2.5 rounded-xl border border-indigo-200"><div class="text-xs text-indigo-700 font-bold">Hold</div><div class="text-lg font-extrabold text-indigo-700">${hold}</div></div>
+        <div class="bg-rose-50 p-2.5 rounded-xl border border-rose-200"><div class="text-xs text-rose-700 font-bold">Cancel</div><div class="text-lg font-extrabold text-rose-700">${cancel}</div></div>
+      `;
+
+      const listEl = document.getElementById("modal-subdiv-list");
+      listEl.innerHTML = subJobs.length === 0 ? `<div class="text-center py-12 text-slate-400">Belum ada data.</div>` : subJobs.map(j => `
+        <div class="p-4 rounded-xl border border-slate-200 hover:border-blue-400 bg-white shadow-sm flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+          <div class="space-y-1 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[11px] font-extrabold ${j.docType === 'WO' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">${j.docType}</span>
+              <button onclick="openJobDetailModal(${j.id})" class="font-bold text-sm text-blue-600 hover:underline">${j.docNumber}</button>
+              <span class="text-xs text-slate-400">• ${j.date}</span>
+              <span class="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">Mkt: ${j.marketing}</span>
+            </div>
+            <div class="text-sm font-bold text-slate-800">${j.customer}</div>
+            <div class="text-xs text-slate-600">${j.desc}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select onchange="quickChangeStatus(${j.id}, this.value)" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold bg-slate-50">
+              <option value="Done" ${j.status === 'Done' ? 'selected' : ''}>Done</option>
+              <option value="Pending" ${j.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Hold" ${j.status === 'Hold' ? 'selected' : ''}>Hold</option>
+              <option value="Cancel" ${j.status === 'Cancel' ? 'selected' : ''}>Cancel</option>
+            </select>
+            <button onclick="editJob(${j.id})" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold">Edit</button>
+            <button onclick="deleteJob(${j.id})" class="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      `).join("");
+
+      modal.classList.remove("hidden");
+    }
+
+    function closeSubdivModal() {
+      activeModalSubdiv = null;
+      document.getElementById("subdiv-modal").classList.add("hidden");
+    }
+
+    function createNewFromModal() {
+      const sub = activeModalSubdiv;
+      closeSubdivModal();
+      openInputTabNew(sub);
+    }
+
+    function renderDashboard() {
+      populateMarketingDropdown();
+      const recapJobs = getFilteredByRecap();
+
+      renderCircularSubdivisions(recapJobs);
+
+      const woList = recapJobs.filter(j => j.docType === "WO");
+      const spkList = recapJobs.filter(j => j.docType === "SPK");
+
+      const woDone = woList.filter(j => j.status === "Done").length;
+      const woPending = woList.filter(j => j.status === "Pending").length;
+      const woHold = woList.filter(j => j.status === "Hold").length;
+      const woCancel = woList.filter(j => j.status === "Cancel").length;
+
+      document.getElementById("total-wo").innerText = woList.length;
+      document.getElementById("wo-done").innerText = woDone;
+      document.getElementById("wo-done-pct").innerText = calcPct(woDone, woList.length);
+      document.getElementById("wo-pending").innerText = woPending;
+      document.getElementById("wo-pending-pct").innerText = calcPct(woPending, woList.length);
+      document.getElementById("wo-hold").innerText = woHold;
+      document.getElementById("wo-hold-pct").innerText = calcPct(woHold, woList.length);
+      document.getElementById("wo-cancel").innerText = woCancel;
+      document.getElementById("wo-cancel-pct").innerText = calcPct(woCancel, woList.length);
+
+      const spkDone = spkList.filter(j => j.status === "Done").length;
+      const spkPending = spkList.filter(j => j.status === "Pending").length;
+      const spkHold = spkList.filter(j => j.status === "Hold").length;
+      const spkCancel = spkList.filter(j => j.status === "Cancel").length;
+
+      document.getElementById("total-spk").innerText = spkList.length;
+      document.getElementById("spk-done").innerText = spkDone;
+      document.getElementById("spk-done-pct").innerText = calcPct(spkDone, spkList.length);
+      document.getElementById("spk-pending").innerText = spkPending;
+      document.getElementById("spk-pending-pct").innerText = calcPct(spkPending, spkList.length);
+      document.getElementById("spk-hold").innerText = spkHold;
+      document.getElementById("spk-hold-pct").innerText = calcPct(spkHold, spkList.length);
+      document.getElementById("spk-cancel").innerText = spkCancel;
+      document.getElementById("spk-cancel-pct").innerText = calcPct(spkCancel, spkList.length);
+
+      const matrixBody = document.getElementById("matrix-body");
+      matrixBody.innerHTML = ALL_SUB_DIVISIONS.map(sub => {
+        const subJobs = recapJobs.filter(j => j.subdiv === sub);
+        const total = subJobs.length;
+        const personCount = teamMembers.filter(m => m.subdiv === sub).length;
+        const woCount = subJobs.filter(j => j.docType === "WO").length;
+        const spkCount = subJobs.filter(j => j.docType === "SPK").length;
+        const doneCount = subJobs.filter(j => j.status === "Done").length;
+        const pendingCount = subJobs.filter(j => j.status === "Pending").length;
+        const holdCount = subJobs.filter(j => j.status === "Hold").length;
+        const cancelCount = subJobs.filter(j => j.status === "Cancel").length;
+
+        return `
+          <tr class="hover:bg-blue-50/40 font-medium transition">
+            <td onclick="openSubdivModal('${sub}')" class="p-3 font-bold text-slate-800 cursor-pointer hover:text-blue-600">${sub}</td>
+            <td class="p-3 text-center">${personCount} Org</td>
+            <td class="p-3 text-center font-extrabold text-blue-600 bg-blue-50/40">${woCount}</td>
+            <td class="p-3 text-center font-extrabold text-purple-600 bg-purple-50/40">${spkCount}</td>
+            <td class="p-3 text-center font-extrabold text-slate-800">${total}</td>
+            <td class="p-3 text-center font-bold text-emerald-700 bg-emerald-50/60">${doneCount} (${calcPct(doneCount, total)})</td>
+            <td class="p-3 text-center font-bold text-amber-700 bg-amber-50/60">${pendingCount} (${calcPct(pendingCount, total)})</td>
+            <td class="p-3 text-center font-bold text-indigo-700 bg-indigo-50/60">${holdCount} (${calcPct(holdCount, total)})</td>
+            <td class="p-3 text-center font-bold text-rose-700 bg-rose-50/60">${cancelCount} (${calcPct(cancelCount, total)})</td>
+            <td class="p-3 text-center whitespace-nowrap space-x-1">
+              <button onclick="openSubdivModal('${sub}')" class="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 text-xs font-bold">Kelola</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      const qDoc = (document.getElementById("search-doc")?.value || "").toLowerCase();
+      const qCust = (document.getElementById("search-customer")?.value || "").toLowerCase();
+      const qMkt = (document.getElementById("search-marketing")?.value || "").toLowerCase();
+      const fStat = document.getElementById("filter-status").value;
+
+      const filtered = recapJobs.filter(j => {
+        const matchDoc = j.docNumber.toLowerCase().includes(qDoc);
+        const matchCust = j.customer.toLowerCase().includes(qCust);
+        const matchMkt = (j.marketing || "").toLowerCase().includes(qMkt);
+        const matchStat = fStat === "ALL" || j.status === fStat;
+        return matchDoc && matchCust && matchMkt && matchStat;
+      });
+
+      const jobsBody = document.getElementById("jobs-body");
+      jobsBody.innerHTML = filtered.length === 0 ? `<tr><td colspan="10" class="p-8 text-center text-slate-400 font-semibold">Tidak ada data yang cocok dengan filter pencarian.</td></tr>` : filtered.map((j, index) => {
+        const badgeColor = j.status === "Done" ? "bg-emerald-100 text-emerald-800" : j.status === "Pending" ? "bg-amber-100 text-amber-800" : j.status === "Hold" ? "bg-indigo-100 text-indigo-800" : "bg-rose-100 text-rose-800";
+        const baDisplay = j.baLink && j.baLink.startsWith("http")
+          ? `<a href="${j.baLink}" target="_blank" class="text-[11px] text-blue-600 font-bold underline flex items-center gap-1"><i class="fa-brands fa-google-drive"></i> Lihat File Drive</a>`
+          : `<span class="text-[11px] text-blue-600 underline">${j.baLink}</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50 align-top">
+            <td class="p-3 text-center font-extrabold text-slate-500">${index + 1}</td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${j.docType === 'WO' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">${j.docType}</span>
+              <div class="mt-1"><button onclick="openJobDetailModal(${j.id})" class="font-extrabold text-blue-600 hover:underline text-left">${j.docNumber}</button></div>
+              <div class="text-[11px] text-slate-400 mt-0.5">${j.date}</div>
+            </td>
+            <td class="p-3 font-semibold text-slate-700">${j.subdiv}</td>
+            <td class="p-3 text-purple-700 font-bold">${j.marketing}</td>
+            <td class="p-3 font-bold text-slate-800">${j.customer}</td>
+            <td class="p-3 max-w-xs">${j.desc} <div class="text-[11px] text-blue-600 mt-1">Target: ${j.target}</div></td>
+            <td class="p-3"><ul class="space-y-1">${j.techs.map(t => `<li class="text-[11px] bg-slate-100 px-2 py-1 rounded"><b>${t.name}</b></li>`).join("")}</ul></td>
+            <td class="p-3">${baDisplay}</td>
+            <td class="p-3"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${badgeColor}">${j.status}</span><p class="text-[11px] text-slate-600 mt-1">${j.statusNote}</p></td>
+            <td class="p-3 text-center whitespace-nowrap">
+              <div class="flex flex-col gap-1.5">
+                <button onclick="openJobDetailModal(${j.id})" class="px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold">Detail</button>
+                <button onclick="editJob(${j.id})" class="px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold">Edit</button>
+                <button onclick="deleteJob(${j.id})" class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold">Hapus</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+  </script>
+</body>
+</html>
