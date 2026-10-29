@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const driveClient = getGoogleDriveClient();
-    const driveStatus = getDriveConfigStatus();
+    const driveClient = getGoogleDriveClient(req.nextUrl.origin);
+    const driveStatus = getDriveConfigStatus(req.nextUrl.origin);
 
     // Jika Google Drive belum dikonfigurasi, gunakan tautan simulasi terstruktur
     if (!driveClient || !driveStatus.configured || !driveStatus.rootFolderId) {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         fileName: file.name,
         targetPath: `OPERASIONAL TEKNIK / ${year} / ${subdiv} / [${docType}-${docNumber}] ${customer} / ${category} / ${file.name}`,
         message:
-          "Google Drive belum terhubung dengan Service Account. URL simulasi telah dibuat.",
+          "Google Drive belum terhubung (OAuth 2.0 / Service Account). URL simulasi telah dibuat.",
       });
     }
 

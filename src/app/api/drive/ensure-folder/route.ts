@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
       customer = "Umum",
     } = body;
 
-    const driveClient = getGoogleDriveClient();
-    const driveStatus = getDriveConfigStatus();
+    const driveClient = getGoogleDriveClient(req.nextUrl.origin);
+    const driveStatus = getDriveConfigStatus(req.nextUrl.origin);
 
     if (!driveClient || !driveStatus.configured || !driveStatus.rootFolderId) {
       return NextResponse.json({

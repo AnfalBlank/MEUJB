@@ -69,10 +69,16 @@ Lalu lengkapi isinya:
 TURSO_DATABASE_URL="libsql://your-db-url.turso.io"
 TURSO_AUTH_TOKEN="your-turso-auth-token"
 
-# Google Drive Service Account
-GOOGLE_SERVICE_ACCOUNT_EMAIL="your-service-account@project.iam.gserviceaccount.com"
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Google Drive (Pilihan 1: OAuth 2.0 - Kuota Pribadi 15GB)
+GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-client-secret"
+GOOGLE_REFRESH_TOKEN=""
+GOOGLE_REDIRECT_URI="http://localhost:3001/api/drive/callback"
 GDRIVE_ROOT_FOLDER_ID="your-root-folder-id"
+
+# Google Drive (Pilihan 2: Service Account - Google Workspace Shared Drive)
+# GOOGLE_SERVICE_ACCOUNT_EMAIL="your-service-account@project.iam.gserviceaccount.com"
+# GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 ### 4. Jalankan Server Development

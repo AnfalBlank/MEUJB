@@ -1,18 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getDriveConfigStatus } from "@/utils/driveClient";
 
-export async function GET() {
-  const status = getDriveConfigStatus();
+export async function GET(req: NextRequest) {
+  const origin = req.nextUrl.origin;
+  const status = getDriveConfigStatus(origin);
 
   return NextResponse.json({
     success: true,
     ...status,
     instructions: {
-      step1: "Buka Google Cloud Console dan buat Service Account",
-      step2: "Aktifkan Google Drive API pada project Anda",
-      step3: "Download JSON key dan isi GOOGLE_SERVICE_ACCOUNT_EMAIL serta GOOGLE_PRIVATE_KEY di .env.local",
-      step4: "Buat folder di Google Drive dan isi GDRIVE_ROOT_FOLDER_ID dari URL folder",
-      step5: "Bagikan (Share) folder Drive tersebut ke email Service Account dengan akses Editor",
+      step1: "Buka Google Cloud Console dan buat OAuth 2.0 Client ID (Web Application)",
+      step2: `Tambahkan Authorized redirect URI: ${status.redirectUri}`,
+      step3: "Salin Client ID dan Client Secret ke form atau .env.local",
+      step4: "Klik 'Hubungkan Akun Google Drive' dan beri izin akses",
+      step5: "Status aplikasi di Google Console ubah ke 'In Production' agar token permanen",
     },
   });
 }

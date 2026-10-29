@@ -17,6 +17,7 @@ import { ExportCsvModal } from "@/components/ExportCsvModal";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { UserManagementModal } from "@/components/UserManagementModal";
 import { AuditLogView } from "@/components/AuditLogView";
+import { DriveGuideModal } from "@/components/DriveGuideModal";
 import { WorkOrderJob, Technician, SubDivision, JobStatus, AuthUser } from "@/types";
 import { INITIAL_JOBS, INITIAL_TECHNICIANS } from "@/data/initialData";
 
@@ -60,6 +61,7 @@ export default function HomePage() {
   const [modalCustomJobs, setModalCustomJobs] = useState<WorkOrderJob[] | null>(null);
   const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState<boolean>(false);
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState<boolean>(false);
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState<boolean>(false);
 
 
   // Confirmation Modal
@@ -655,6 +657,7 @@ export default function HomePage() {
         onLogout={handleLogout}
         onOpenProfileSettings={() => setIsUserProfileModalOpen(true)}
         onOpenUserManagement={() => setIsUserManagementModalOpen(true)}
+        onOpenDriveSettings={() => setIsDriveModalOpen(true)}
       />
 
       {/* 2. Main Content Body - Fluid, Proportional Width */}
@@ -818,6 +821,11 @@ export default function HomePage() {
         currentUser={currentUser}
         onShowToast={addToast}
         onConfirmAction={(cfg) => setConfirmModal({ isOpen: true, ...cfg })}
+      />
+
+      <DriveGuideModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
       />
 
       <ToastContainer

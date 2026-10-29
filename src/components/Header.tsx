@@ -14,7 +14,8 @@ import {
   UserPlus,
   ChevronDown,
   Settings,
-  KeyRound
+  KeyRound,
+  HardDrive
 } from "lucide-react";
 import { AuthUser } from "@/types";
 
@@ -31,6 +32,7 @@ interface HeaderProps {
   onLogout?: () => void;
   onOpenProfileSettings?: () => void;
   onOpenUserManagement?: () => void;
+  onOpenDriveSettings?: () => void;
 }
 
 export function Header({
@@ -45,6 +47,7 @@ export function Header({
   onLogout,
   onOpenProfileSettings,
   onOpenUserManagement,
+  onOpenDriveSettings,
 }: HeaderProps) {
   const [timeStr, setTimeStr] = useState<string>("");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
@@ -133,6 +136,24 @@ export function Header({
             <div>
               <div className="font-semibold">Audit Log</div>
               <div className="text-[10px] text-slate-400">Lihat jejak aktivitas</div>
+            </div>
+          </button>
+        )}
+
+        {/* Google Drive Integration (OAuth 2.0 & Folder Setup) */}
+        {onOpenDriveSettings && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              onOpenDriveSettings();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-slate-800 rounded-xl transition-colors text-left cursor-pointer"
+          >
+            <HardDrive className="w-4 h-4 text-sky-400" />
+            <div>
+              <div className="font-semibold">Integrasi Google Drive</div>
+              <div className="text-[10px] text-slate-400">OAuth 2.0 & folder arsip</div>
             </div>
           </button>
         )}
