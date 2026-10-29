@@ -79,10 +79,59 @@ export interface DivisionMeta {
   badgeBg: string;
 }
 
-export interface AuthUser {
+export type UserRole = "superadmin" | "admin" | "manager";
+
+export interface SystemUser {
+  id: string;
   username: string;
   name: string;
-  role: string;
+  role: UserRole;
+  isRoot?: boolean;
+  lastLoginAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AuthUser {
+  id?: string;
+  username: string;
+  name: string;
+  role: UserRole | string;
+  isRoot?: boolean;
   loggedInAt?: string;
 }
+
+export type AuditCategory = "AUTH" | "WORK_ORDER" | "TEAM" | "USER_MANAGEMENT" | "SYSTEM";
+
+export type AuditAction = 
+  | "LOGIN"
+  | "LOGOUT"
+  | "LOGIN_FAILED"
+  | "CREATE_JOB"
+  | "UPDATE_JOB"
+  | "DELETE_JOB"
+  | "UPDATE_STATUS"
+  | "CREATE_MEMBER"
+  | "UPDATE_MEMBER"
+  | "DELETE_MEMBER"
+  | "CREATE_USER"
+  | "UPDATE_USER"
+  | "DELETE_USER"
+  | "UPDATE_PROFILE"
+  | "INIT_SYSTEM";
+
+export interface AuditLogItem {
+  id: string;
+  userId?: string;
+  username: string;
+  userName: string;
+  userRole: string;
+  action: AuditAction | string;
+  category: AuditCategory | string;
+  details: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
 

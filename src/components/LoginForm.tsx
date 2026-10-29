@@ -27,7 +27,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -41,30 +41,49 @@ export function LoginForm({ onLogin }: LoginFormProps) {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      // Validasi 2 akun resmi:
-      // 1. username: admin, password: password
-      // 2. username: prinof, password: password
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleanUser, password: cleanPass }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.user) {
+        onLogin(data.user);
+      } else {
+        setError(data.error || "Username atau password salah. Silakan periksa kembali.");
+        setIsLoading(false);
+      }
+    } catch (netErr) {
+      console.warn("Network error during login, attempting offline fallback", netErr);
+      // Offline fallback for root admin and manager
       if (cleanUser === "admin" && cleanPass === "password") {
         onLogin({
+          id: "usr-admin-root",
           username: "admin",
           name: "Administrator Teknik",
-          role: "Super Admin",
+          role: "superadmin",
+          isRoot: true,
           loggedInAt: new Date().toISOString(),
         });
       } else if (cleanUser === "prinof" && cleanPass === "password") {
         onLogin({
+          id: "usr-prinof",
           username: "prinof",
           name: "Prinof",
-          role: "Project Manager & Master Teknik",
+          role: "manager",
+          isRoot: false,
           loggedInAt: new Date().toISOString(),
         });
       } else {
-        setError("Username atau password salah. Silakan periksa kembali.");
+        setError("Gagal menghubungi server database. Periksa koneksi internet Anda.");
         setIsLoading(false);
       }
-    }, 400);
+    }
   };
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-800 relative overflow-hidden select-none">

@@ -14,6 +14,9 @@ import { TeamView } from "@/components/TeamView";
 import { LoginForm } from "@/components/LoginForm";
 import { OfficialReportModal } from "@/components/OfficialReportModal";
 import { ExportCsvModal } from "@/components/ExportCsvModal";
+import { UserProfileModal } from "@/components/UserProfileModal";
+import { UserManagementModal } from "@/components/UserManagementModal";
+import { AuditLogView } from "@/components/AuditLogView";
 import { WorkOrderJob, Technician, SubDivision, JobStatus, AuthUser } from "@/types";
 import { INITIAL_JOBS, INITIAL_TECHNICIANS } from "@/data/initialData";
 
@@ -26,12 +29,26 @@ const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 Jam (7.200.000 ms)
 export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "executive" | "input" | "team">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "executive" | "input" | "team" | "audit">("dashboard");
   const [jobs, setJobs] = useState<WorkOrderJob[]>(INITIAL_JOBS);
   const [teamMembers, setTeamMembers] = useState<Technician[]>(INITIAL_TECHNICIANS);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [dbLatency, setDbLatency] = useState<number | null>(null);
+
+  const isSuperAdmin = Boolean(
+    currentUser?.role?.toLowerCase().replace(/[\s_-]/g, "") === "superadmin" ||
+    currentUser?.isRoot ||
+    currentUser?.username === "admin" ||
+    currentUser?.username === "root"
+  );
+
+  // Security tab guard: if not superadmin, never allow audit tab
+  useEffect(() => {
+    if (currentUser && !isSuperAdmin && activeTab === "audit") {
+      setActiveTab("dashboard");
+    }
+  }, [currentUser, activeTab, isSuperAdmin]);
 
   // Active Modals & Selection States
   const [editingJob, setEditingJob] = useState<WorkOrderJob | null>(null);
@@ -41,6 +58,9 @@ export default function HomePage() {
   const [isOfficialReportModalOpen, setIsOfficialReportModalOpen] = useState<boolean>(false);
   const [isExportCsvModalOpen, setIsExportCsvModalOpen] = useState<boolean>(false);
   const [modalCustomJobs, setModalCustomJobs] = useState<WorkOrderJob[] | null>(null);
+  const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState<boolean>(false);
+  const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState<boolean>(false);
+
 
   // Confirmation Modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -230,6 +250,24 @@ export default function HomePage() {
     }
   }, [jobs, selectedJobForDetail]);
 
+  // Audit Logging Helper
+  const recordAuditLog = (action: string, category: string, details: string) => {
+    if (!currentUser) return;
+    fetch("/api/audit-logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        username: currentUser.username,
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        action,
+        category,
+        details,
+      }),
+    }).catch(() => {});
+  };
+
   // Handlers
   const handleOpenNewJob = () => {
     setEditingJob(null);
@@ -259,6 +297,13 @@ export default function HomePage() {
     addToast(`Dokumen ${jobToSave.docNumber} tersimpan (menyinkronkan ke Turso Cloud...)`, "info");
     setEditingJob(null);
     setActiveTab("dashboard");
+
+    // Audit log
+    recordAuditLog(
+      isEdit ? "UPDATE_JOB" : "CREATE_JOB",
+      "WORK_ORDER",
+      `${currentUser?.name || "User"} (${currentUser?.role || ""}) ${isEdit ? "memperbarui data" : "membuat"} dokumen ${jobToSave.docType}: ${jobToSave.docNumber} - ${jobToSave.customer}`
+    );
 
     // 2. Persist to Turso DB
     try {
@@ -299,6 +344,13 @@ export default function HomePage() {
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         addToast(`Dokumen ${target.docNumber} telah dihapus.`, "info");
 
+        // Audit log
+        recordAuditLog(
+          "DELETE_JOB",
+          "WORK_ORDER",
+          `${currentUser?.name || "User"} (${currentUser?.role || ""}) menghapus dokumen ${target.docType}: ${target.docNumber} (${target.customer})`
+        );
+
         // Delete from Turso Cloud
         try {
           await fetch(`/api/jobs/${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -316,6 +368,13 @@ export default function HomePage() {
     );
     const target = jobs.find((j) => j.id === id);
     addToast(`Status ${target?.docNumber || "pekerjaan"} diubah ke "${newStatus}"`, "success");
+
+    // Audit log
+    recordAuditLog(
+      "UPDATE_STATUS",
+      "WORK_ORDER",
+      `${currentUser?.name || "User"} mengubah status dokumen ${target?.docNumber || id} menjadi "${newStatus}"`
+    );
 
     // Patch to Turso Cloud
     try {
@@ -385,6 +444,13 @@ export default function HomePage() {
 
     addToast(`Data personil "${memberToSave.name}" berhasil disimpan!`, "success");
 
+    // Audit log
+    recordAuditLog(
+      isEdit ? "UPDATE_MEMBER" : "CREATE_MEMBER",
+      "TEAM",
+      `${currentUser?.name || "User"} ${isEdit ? "memperbarui" : "menambahkan"} data personil tim: ${memberToSave.name} (${memberToSave.subdiv} - ${memberToSave.role})`
+    );
+
     try {
       const url = isEdit ? `/api/technicians/${encodeURIComponent(memberToSave.id)}` : "/api/technicians";
       const method = isEdit ? "PUT" : "POST";
@@ -412,6 +478,13 @@ export default function HomePage() {
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         addToast(`Personil "${target.name}" telah dihapus.`, "info");
 
+        // Audit log
+        recordAuditLog(
+          "DELETE_MEMBER",
+          "TEAM",
+          `${currentUser?.name || "User"} menghapus data personil tim: ${target.name} (${target.subdiv})`
+        );
+
         try {
           await fetch(`/api/technicians/${encodeURIComponent(id)}`, { method: "DELETE" });
         } catch (err) {
@@ -420,6 +493,7 @@ export default function HomePage() {
       }
     });
   };
+
 
   // Backup & Restore
   const handleExportData = () => {
@@ -508,6 +582,7 @@ export default function HomePage() {
 
   const handleLogin = (user: AuthUser) => {
     setCurrentUser(user);
+    setActiveTab("dashboard");
     try {
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
       localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
@@ -522,7 +597,17 @@ export default function HomePage() {
       message: `Apakah Anda yakin ingin keluar dari akun ${currentUser?.name || ""}?`,
       confirmLabel: "Logout",
       onConfirm: () => {
+        // Record logout event
+        if (currentUser) {
+          fetch("/api/auth/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(currentUser),
+          }).catch(() => {});
+        }
+
         setCurrentUser(null);
+        setActiveTab("dashboard");
         try {
           localStorage.removeItem(AUTH_USER_KEY);
           localStorage.removeItem(LAST_ACTIVITY_KEY);
@@ -568,6 +653,8 @@ export default function HomePage() {
         dbLatency={dbLatency}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onOpenProfileSettings={() => setIsUserProfileModalOpen(true)}
+        onOpenUserManagement={() => setIsUserManagementModalOpen(true)}
       />
 
       {/* 2. Main Content Body - Fluid, Proportional Width */}
@@ -631,6 +718,12 @@ export default function HomePage() {
             onDeleteMember={handleDeleteMember}
             onOpenMemberMatrix={(m) => setSelectedMemberForMatrix(m)}
             onShowToast={addToast}
+          />
+        )}
+
+        {activeTab === "audit" && isSuperAdmin && (
+          <AuditLogView
+            currentUser={currentUser}
           />
         )}
       </main>
@@ -704,6 +797,29 @@ export default function HomePage() {
         jobs={modalCustomJobs || jobs}
       />
 
+      <UserProfileModal
+        isOpen={isUserProfileModalOpen}
+        onClose={() => setIsUserProfileModalOpen(false)}
+        currentUser={currentUser}
+        onProfileUpdated={(updated) => {
+          setCurrentUser(updated);
+          try {
+            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+          } catch {}
+        }}
+        onShowToast={addToast}
+        onOpenUserManagement={() => setIsUserManagementModalOpen(true)}
+      />
+
+
+      <UserManagementModal
+        isOpen={isUserManagementModalOpen}
+        onClose={() => setIsUserManagementModalOpen(false)}
+        currentUser={currentUser}
+        onShowToast={addToast}
+        onConfirmAction={(cfg) => setConfirmModal({ isOpen: true, ...cfg })}
+      />
+
       <ToastContainer
         toasts={toasts}
         onDismiss={removeToast}
@@ -712,3 +828,4 @@ export default function HomePage() {
     </div>
   );
 }
+

@@ -8,13 +8,20 @@ import {
   Users, 
   PlusCircle, 
   BarChart3,
-  LogOut
+  LogOut,
+  ShieldCheck,
+  UserCog,
+  UserPlus,
+  ChevronDown,
+  Settings,
+  KeyRound
 } from "lucide-react";
 import { AuthUser } from "@/types";
 
+
 interface HeaderProps {
-  activeTab: "dashboard" | "executive" | "input" | "team";
-  onTabChange: (tab: "dashboard" | "executive" | "input" | "team") => void;
+  activeTab: "dashboard" | "executive" | "input" | "team" | "audit";
+  onTabChange: (tab: "dashboard" | "executive" | "input" | "team" | "audit") => void;
   onNewJobClick: () => void;
   editingJobNumber?: string | null;
   isSyncing?: boolean;
@@ -22,6 +29,8 @@ interface HeaderProps {
   dbLatency?: number | null;
   currentUser?: AuthUser | null;
   onLogout?: () => void;
+  onOpenProfileSettings?: () => void;
+  onOpenUserManagement?: () => void;
 }
 
 export function Header({
@@ -33,9 +42,13 @@ export function Header({
   onSyncTurso,
   dbLatency = null,
   currentUser,
-  onLogout
+  onLogout,
+  onOpenProfileSettings,
+  onOpenUserManagement,
 }: HeaderProps) {
   const [timeStr, setTimeStr] = useState<string>("");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
+
 
   useEffect(() => {
     const updateTime = () => {
@@ -54,20 +67,113 @@ export function Header({
     return () => clearInterval(interval);
   }, []);
 
+  const renderUserDropdownContent = () => {
+    if (!currentUser) return null;
+    return (
+      <>
+        <div className="px-3 py-2 border-b border-slate-800/80 mb-1">
+          <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">
+            Masuk Sebagai
+          </span>
+          <span className="text-xs font-bold text-white block truncate">
+            {currentUser.name}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono">
+            @{currentUser.username} • {currentUser.role}
+          </span>
+        </div>
+
+        {/* Profile Settings */}
+        {onOpenProfileSettings && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              onOpenProfileSettings();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-slate-800 rounded-xl transition-colors text-left cursor-pointer"
+          >
+            <UserCog className="w-4 h-4 text-blue-400" />
+            <div>
+              <div className="font-semibold">Pengaturan Profil</div>
+              <div className="text-[10px] text-slate-400">Ganti nama & kata sandi</div>
+            </div>
+          </button>
+        )}
+
+        {/* User Management (Root / Superadmin) */}
+        {(currentUser.isRoot || currentUser.username === "admin" || currentUser.username === "root" || currentUser.role?.toLowerCase().replace(/[\s_-]/g, "") === "superadmin") && onOpenUserManagement && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              onOpenUserManagement();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-slate-800 rounded-xl transition-colors text-left cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4 text-purple-400" />
+            <div>
+              <div className="font-semibold">Kelola Pengguna</div>
+              <div className="text-[10px] text-purple-300">Tambah user & atur role</div>
+            </div>
+          </button>
+        )}
+
+        {/* Audit Log shortcut (Superadmin) */}
+        {(currentUser.role?.toLowerCase().replace(/[\s_-]/g, "") === "superadmin" || currentUser.isRoot || currentUser.username === "admin" || currentUser.username === "root") && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              onTabChange("audit");
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-200 hover:text-white hover:bg-slate-800 rounded-xl transition-colors text-left cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <div>
+              <div className="font-semibold">Audit Log</div>
+              <div className="text-[10px] text-slate-400">Lihat jejak aktivitas</div>
+            </div>
+          </button>
+        )}
+
+        <div className="my-1 border-t border-slate-800/80" />
+
+        {/* Logout */}
+        {onLogout && (
+          <button
+            type="button"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              onLogout();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-rose-300 hover:text-rose-200 hover:bg-rose-500/10 rounded-xl transition-colors text-left cursor-pointer"
+          >
+            <LogOut className="w-4 h-4 text-rose-400" />
+            <span>Logout dari Sistem</span>
+          </button>
+        )}
+      </>
+    );
+  };
+
   return (
     <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
       <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-2.5 sm:py-3 gap-2.5 sm:gap-4">
+        
+        {/* Responsive Header: Stacked row on < 2xl to prevent any menu overlap, single line on >= 2xl */}
+        <div className="flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between py-2 sm:py-2.5 gap-2.5 2xl:gap-4">
           
-          {/* Logo & System Brand */}
-          <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800/90 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+          {/* Top Row (Mobile/Laptop) or Left Side (Large Display) */}
+          <div className="flex items-center justify-between gap-3 w-full 2xl:w-auto">
+            {/* Logo & System Brand */}
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-800/90 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
                 <Image
                   src="/logo.png"
                   alt="Logo PT. Usaha Jayamas Bhakti"
-                  width={40}
-                  height={40}
+                  width={38}
+                  height={38}
                   className="object-contain"
                   priority
                 />
@@ -95,45 +201,64 @@ export function Header({
                   </div>
                 </div>
 
-                <h1 className="text-xs sm:text-sm md:text-base font-bold tracking-tight text-white leading-tight mt-0.5 truncate">
+                <h1 className="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight mt-0.5 truncate">
                   Monitoring Operasional Teknik (WO / SPK)
                 </h1>
               </div>
             </div>
 
-            {/* Mobile Only: Profile Avatar & Logout */}
-            {currentUser && (
-              <div className="flex items-center gap-1.5 lg:hidden shrink-0">
-                <div 
-                  className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs"
-                  title={`${currentUser.name} (${currentUser.role})`}
-                >
-                  {currentUser.username === "admin" ? "AD" : "PR"}
-                </div>
-                {onLogout && (
+            {/* When screen < 2xl: Quick action buttons on top row right side */}
+            <div className="flex items-center gap-2 2xl:hidden shrink-0">
+              <button
+                type="button"
+                onClick={onNewJobClick}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl transition-colors shadow-xs shrink-0 cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Buat WO / SPK</span>
+                <span className="sm:hidden">Buat WO</span>
+              </button>
+
+              {currentUser && (
+                <div className="relative">
                   <button
                     type="button"
-                    onClick={onLogout}
-                    title={`Keluar (${currentUser.username})`}
-                    className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs transition-colors"
-                    aria-label="Logout"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700/80 rounded-xl p-1 sm:px-2.5 sm:py-1 cursor-pointer transition-colors"
+                    title={`Profil: ${currentUser.name} (${currentUser.role})`}
                   >
-                    <LogOut className="w-4 h-4 text-rose-400" />
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs">
+                      {currentUser.username.slice(0, 2).toUpperCase()}
+                    </div>
+                    <span className="text-xs font-bold text-white hidden sm:inline max-w-[90px] truncate">
+                      {currentUser.name.split(" ")[0]}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
                   </button>
-                )}
-              </div>
-            )}
+
+                  {/* Dropdown Menu for < 2xl */}
+                  {isUserMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        {renderUserDropdownContent()}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Action Tools & Tabs */}
-          <div className="flex items-center justify-between lg:justify-end gap-2 overflow-x-auto no-scrollbar w-full lg:w-auto pb-0.5 lg:pb-0">
+          {/* Navigation Bar Row (or Center/Right on >= 2xl) */}
+          <div className="flex items-center justify-between 2xl:justify-end gap-2 overflow-x-auto no-scrollbar w-full 2xl:w-auto">
             
             {/* Primary Navigation Tabs */}
-            <nav className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 gap-0.5 shrink-0">
+            <nav className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 gap-1 shrink-0 overflow-x-auto no-scrollbar w-full sm:w-auto justify-start sm:justify-start">
               <button
                 type="button"
                 onClick={() => onTabChange("dashboard")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
                   activeTab === "dashboard"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -146,7 +271,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onTabChange("executive")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
                   activeTab === "executive"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -159,7 +284,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onTabChange("input")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
                   activeTab === "input"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -174,7 +299,7 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onTabChange("team")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
                   activeTab === "team"
                     ? "bg-blue-600 text-white shadow-xs"
                     : "text-slate-300 hover:text-white hover:bg-slate-800/80"
@@ -183,61 +308,97 @@ export function Header({
                 <Users className="w-3.5 h-3.5" />
                 <span>Master Tim</span>
               </button>
+
+              {/* Audit Log Tab - Only for Superadmin */}
+              {(currentUser?.role?.toLowerCase().replace(/[\s_-]/g, "") === "superadmin" || currentUser?.isRoot || currentUser?.username === "admin" || currentUser?.username === "root") && (
+                <button
+                  type="button"
+                  onClick={() => onTabChange("audit")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer ${
+                    activeTab === "audit"
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/80"
+                  }`}
+                  title="Audit Log Aktivitas Sistem (Khusus Superadmin)"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-300" />
+                  <span>Audit Log</span>
+                  <span className="text-[8px] bg-purple-500/30 text-purple-200 border border-purple-400/40 px-1 py-0.2 rounded font-mono font-bold">
+                    ROOT
+                  </span>
+                </button>
+              )}
             </nav>
 
-            {/* Quick Action Button: Create WO / SPK */}
-            <button
-              type="button"
-              onClick={onNewJobClick}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-xs shrink-0 cursor-pointer"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Buat WO / SPK</span>
-              <span className="sm:hidden">Baru</span>
-            </button>
+            {/* On >= 2xl screen: Show Buat WO & User Profile Card here */}
+            <div className="hidden 2xl:flex items-center gap-2 pl-2 border-l border-slate-800 ml-1 shrink-0 relative">
+              <button
+                type="button"
+                onClick={onNewJobClick}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors shadow-xs shrink-0 cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Buat WO / SPK</span>
+              </button>
 
-            {/* Desktop Only: Authenticated User Profile & Logout */}
-            {currentUser && (
-              <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-800 ml-1 shrink-0">
-                <div 
-                  className="flex items-center gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-2.5 py-1"
-                  title={`Login sebagai ${currentUser.name} (${currentUser.role})`}
-                >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs">
-                    {currentUser.username === "admin" ? "AD" : "PR"}
-                  </div>
-                  <div className="text-left">
-                    <div className="text-[11px] font-bold text-white leading-tight flex items-center gap-1.5">
-                      <span>{currentUser.name}</span>
-                      {currentUser.username === "admin" ? (
-                        <span className="text-[8px] bg-blue-500/20 text-blue-300 font-mono px-1 py-0.2 rounded font-semibold">ROOT</span>
-                      ) : (
-                        <span className="text-[8px] bg-emerald-500/20 text-emerald-300 font-mono px-1 py-0.2 rounded font-semibold">PM</span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-medium leading-tight">
-                      {currentUser.role}
-                    </div>
-                  </div>
-                </div>
-
-                {onLogout && (
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    title={`Keluar dari sesi ${currentUser.name}`}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                    aria-label="Logout"
+              {currentUser && (
+                <div className="relative">
+                  <div 
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 bg-slate-950/70 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-xl px-2.5 py-1 cursor-pointer transition-colors select-none"
+                    title="Klik untuk membuka Pengaturan Profil & Manajemen Akun"
                   >
-                    <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Logout</span>
-                  </button>
-                )}
-              </div>
-            )}
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold font-mono shadow-xs">
+                      {currentUser.username.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="text-left">
+                      <div className="text-[11px] font-bold text-white leading-tight flex items-center gap-1.5">
+                        <span className="max-w-[100px] truncate">{currentUser.name}</span>
+                        {currentUser.isRoot || currentUser.username === "admin" || currentUser.username === "root" ? (
+                          <span className="text-[8px] bg-amber-500/20 text-amber-300 font-mono px-1 py-0.2 rounded font-bold">ROOT</span>
+                        ) : currentUser.role?.toLowerCase() === "superadmin" ? (
+                          <span className="text-[8px] bg-purple-500/20 text-purple-300 font-mono px-1 py-0.2 rounded font-bold">SUPER</span>
+                        ) : (
+                          <span className="text-[8px] bg-blue-500/20 text-blue-300 font-mono px-1 py-0.2 rounded font-semibold">USER</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                        {currentUser.role}
+                      </div>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
+                  </div>
+
+                  {/* Dropdown Menu for >= 2xl */}
+                  {isUserMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                        {renderUserDropdownContent()}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Quick Logout Icon Button */}
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  title={`Logout (${currentUser?.username})`}
+                  className="p-2 bg-slate-950/70 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-500/30 rounded-xl text-xs transition-colors cursor-pointer shrink-0"
+                  aria-label="Logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
           </div>
+
         </div>
+
       </div>
     </header>
   );

@@ -76,3 +76,30 @@ export const workOrderPhotos = sqliteTable("work_order_photos", {
   caption: text("caption"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  role: text("role").notNull(), // superadmin | admin | manager
+  isRoot: integer("is_root").default(0),
+  lastLoginAt: text("last_login_at"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const auditLogs = sqliteTable("audit_logs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id"),
+  username: text("username").notNull(),
+  userName: text("user_name").notNull(),
+  userRole: text("user_role").notNull(),
+  action: text("action").notNull(), // LOGIN, LOGOUT, CREATE_JOB, UPDATE_JOB, DELETE_JOB, UPDATE_STATUS, etc.
+  category: text("category").notNull(), // AUTH, WORK_ORDER, TEAM, USER_MANAGEMENT, SYSTEM
+  details: text("details").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+

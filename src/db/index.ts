@@ -98,7 +98,39 @@ export async function ensureTablesAndSeed() {
       );
     `);
 
-    // 1b. Safely add start_date and target_date columns if not exists
+    // 1b. Create users table
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        is_root INTEGER DEFAULT 0,
+        last_login_at TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 1c. Create audit_logs table
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        username TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_role TEXT NOT NULL,
+        action TEXT NOT NULL,
+        category TEXT NOT NULL,
+        details TEXT NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 1d. Safely add start_date and target_date columns if not exists
     try {
       await client.execute("ALTER TABLE work_orders ADD COLUMN start_date TEXT");
     } catch {}
@@ -128,7 +160,26 @@ export async function ensureTablesAndSeed() {
       }
     }
 
-    // 4. Seed initial jobs if empty
+    // 4. Seed initial users if empty
+    const userCheck = await client.execute("SELECT count(*) as cnt FROM users");
+    if (Number(userCheck.rows[0]?.cnt || 0) === 0) {
+      const now = new Date().toISOString();
+      // Seed root superadmin (admin)
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO users (id, username, password, name, role, is_root, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: ["usr-admin-root", "admin", "password", "Administrator Teknik", "superadmin", 1, now, now]
+      });
+
+      // Seed manager (prinof)
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO users (id, username, password, name, role, is_root, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: ["usr-prinof", "prinof", "password", "Prinof", "manager", 0, now, now]
+      });
+    }
+
+    // 5. Seed initial jobs if empty
     const jobCheck = await client.execute("SELECT count(*) as cnt FROM work_orders");
     if (Number(jobCheck.rows[0]?.cnt || 0) === 0) {
       for (const j of INITIAL_JOBS) {
@@ -177,3 +228,43 @@ export async function ensureTablesAndSeed() {
     return { success: false, error };
   }
 }
+
+// Audit logging helper
+export async function insertAuditLog(log: {
+  userId?: string;
+  username: string;
+  userName: string;
+  userRole: string;
+  action: string;
+  category: string;
+  details: string;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  try {
+    const id = "log-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7);
+    const now = new Date().toISOString();
+    await client.execute({
+      sql: `INSERT INTO audit_logs (id, user_id, username, user_name, user_role, action, category, details, ip_address, user_agent, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        id,
+        log.userId || null,
+        log.username,
+        log.userName,
+        log.userRole,
+        log.action,
+        log.category,
+        log.details,
+        log.ipAddress || null,
+        log.userAgent || null,
+        now,
+      ],
+    });
+    return { success: true, id };
+  } catch (err) {
+    console.error("Error inserting audit log:", err);
+    return { success: false, error: err };
+  }
+}
+
