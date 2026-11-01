@@ -776,6 +776,7 @@ export default function HomePage() {
         {activeTab === "audit" && isSuperAdmin && (
           <AuditLogView
             currentUser={currentUser}
+            sessionToken={sessionToken}
           />
         )}
       </main>

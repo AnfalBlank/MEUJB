@@ -80,6 +80,15 @@ export async function PUT(
     return NextResponse.json({ success: true, message: `User @${currentTarget.username} berhasil diperbarui.` });
   } catch (error: any) {
     console.error("API PUT /api/users/[id] error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API PUT /api/users/[id] error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -125,6 +134,15 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: `User @${targetUser.username} berhasil dihapus.` });
   } catch (error: any) {
     console.error("API DELETE /api/users/[id] error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API DELETE /api/users/[id] error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/utils/apiMiddleware";
-import { client } from "@/db";
+import { client, insertAuditLog } from "@/db";
 import { Technician } from "@/types";
 
 export async function PUT(
@@ -21,6 +21,15 @@ export async function PUT(
     return NextResponse.json({ success: true, message: "Technician updated in Turso" });
   } catch (error: any) {
     console.error("API PUT /api/technicians/[id] error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API PUT /api/technicians/[id] error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed updating technician" },
       { status: 500 }
@@ -45,6 +54,15 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: "Technician deleted from Turso" });
   } catch (error: any) {
     console.error("API DELETE /api/technicians/[id] error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API DELETE /api/technicians/[id] error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed deleting technician" },
       { status: 500 }

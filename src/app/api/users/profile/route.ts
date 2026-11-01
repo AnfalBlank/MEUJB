@@ -94,6 +94,15 @@ export async function PUT(req: Request) {
     });
   } catch (error: any) {
     console.error("API PUT /api/users/profile error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API PUT /api/users/profile error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

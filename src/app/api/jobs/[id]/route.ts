@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { client } from "@/db";
+import { client, insertAuditLog } from "@/db";
 import { WorkOrderJob } from "@/types";
 import { requireAuth, requireAdmin } from "@/utils/apiMiddleware";
 
@@ -135,6 +135,15 @@ export async function PUT(
     return NextResponse.json({ success: true, message: "Job updated successfully" });
   } catch (error: any) {
     console.error("API PUT /api/jobs/[id] error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API PUT /api/jobs/[id] error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed updating job" },
       { status: 500 }
@@ -161,6 +170,15 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: "Job deleted successfully" });
   } catch (error: any) {
     console.error("API DELETE /api/jobs/[id] error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API DELETE /api/jobs/[id] error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed deleting job" },
       { status: 500 }

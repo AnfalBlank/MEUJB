@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { insertAuditLog } from "@/db";
 import {
   getGoogleDriveClient,
   getOrCreateFolder,
@@ -120,10 +121,26 @@ export async function POST(req: NextRequest) {
             "Folder proyek berhasil dibuat di Google Drive Anda. Karena akun Gmail personal membatasi kuota Service Account (0 bytes), silakan taruh file langsung ke dalam folder Drive yang telah dibuat, atau gunakan Google Workspace Shared Drive.",
         });
       }
+      insertAuditLog({
+        username: "system",
+        userName: "System",
+        userRole: "system",
+        action: "DRIVE_ERROR",
+        category: "DRIVE",
+        details: `Upload file ke Drive gagal (uploadErr): ${uploadErr?.message || String(uploadErr)}`,
+      }).catch(() => {});
       throw uploadErr;
     }
   } catch (error: any) {
     console.error("Error upload to Google Drive:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "DRIVE_ERROR",
+      category: "DRIVE",
+      details: `Upload Google Drive gagal: ${error?.message || String(error)}`,
+    }).catch(() => {});
     return NextResponse.json(
       {
         success: false,

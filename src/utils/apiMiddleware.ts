@@ -4,6 +4,7 @@
  */
 import { NextResponse } from "next/server";
 import { getSessionFromRequest, isSuperAdmin, isAdminOrAbove } from "@/utils/auth";
+import { insertAuditLog } from "@/db";
 
 type MiddlewareResult =
   | { ok: true; session: NonNullable<ReturnType<typeof getSessionFromRequest>> }
@@ -13,6 +14,19 @@ type MiddlewareResult =
 export function requireAuth(req: Request): MiddlewareResult {
   const session = getSessionFromRequest(req);
   if (!session) {
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const ua = req.headers.get("user-agent") || "unknown";
+    const url = new URL(req.url).pathname;
+    insertAuditLog({
+      username: "anonymous",
+      userName: "Anonymous",
+      userRole: "unauthenticated",
+      action: "ACCESS_DENIED",
+      category: "AUTH",
+      details: `Akses ditolak (401) - request tanpa token ke ${req.method} ${url}`,
+      ipAddress: ip,
+      userAgent: ua,
+    }).catch(() => {});
     return {
       ok: false,
       response: NextResponse.json(
@@ -29,6 +43,20 @@ export function requireAdmin(req: Request): MiddlewareResult {
   const auth = requireAuth(req);
   if (!auth.ok) return auth;
   if (!isAdminOrAbove(auth.session)) {
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const ua = req.headers.get("user-agent") || "unknown";
+    const url = new URL(req.url).pathname;
+    insertAuditLog({
+      userId: auth.session.userId,
+      username: auth.session.username,
+      userName: auth.session.name,
+      userRole: auth.session.role,
+      action: "ACCESS_DENIED",
+      category: "AUTH",
+      details: `Akses ditolak (403) - role [${auth.session.role}] tidak cukup untuk ${req.method} ${url}`,
+      ipAddress: ip,
+      userAgent: ua,
+    }).catch(() => {});
     return {
       ok: false,
       response: NextResponse.json(
@@ -45,6 +73,20 @@ export function requireSuperAdmin(req: Request): MiddlewareResult {
   const auth = requireAuth(req);
   if (!auth.ok) return auth;
   if (!isSuperAdmin(auth.session)) {
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const ua = req.headers.get("user-agent") || "unknown";
+    const url = new URL(req.url).pathname;
+    insertAuditLog({
+      userId: auth.session.userId,
+      username: auth.session.username,
+      userName: auth.session.name,
+      userRole: auth.session.role,
+      action: "ACCESS_DENIED",
+      category: "AUTH",
+      details: `Akses ditolak (403) - role [${auth.session.role}] bukan Superadmin untuk ${req.method} ${url}`,
+      ipAddress: ip,
+      userAgent: ua,
+    }).catch(() => {});
     return {
       ok: false,
       response: NextResponse.json(

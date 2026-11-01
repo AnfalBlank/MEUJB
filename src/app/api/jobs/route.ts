@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { client, ensureTablesAndSeed } from "@/db";
+import { client, insertAuditLog, ensureTablesAndSeed } from "@/db";
 import { WorkOrderJob, AssignedTech, WorkOrderPhoto } from "@/types";
 import { requireAuth } from "@/utils/apiMiddleware";
 
@@ -182,6 +182,15 @@ export async function GET(req: Request) {
     });
   } catch (error: any) {
     console.error("API GET /api/jobs error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API GET /api/jobs error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed fetching jobs" },
       { status: 500 }
@@ -281,6 +290,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, id, message: "Job created successfully" });
   } catch (error: any) {
     console.error("API POST /api/jobs error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API POST /api/jobs error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed creating job" },
       { status: 500 }

@@ -27,9 +27,10 @@ import { AuditLogItem, AuthUser } from "@/types";
 
 interface AuditLogViewProps {
   currentUser: AuthUser;
+  sessionToken?: string | null;
 }
 
-export function AuditLogView({ currentUser }: AuditLogViewProps) {
+export function AuditLogView({ currentUser, sessionToken }: AuditLogViewProps) {
   const isSuperAdmin = Boolean(
     currentUser?.role?.toLowerCase().replace(/[\s_-]/g, "") === "superadmin" ||
     currentUser?.isRoot ||
@@ -174,7 +175,9 @@ export function AuditLogView({ currentUser }: AuditLogViewProps) {
 
       params.append("limit", "500");
 
-      const res = await fetch(`/api/audit-logs?${params.toString()}`);
+      const res = await fetch(`/api/audit-logs?${params.toString()}`, {
+        headers: sessionToken ? { "Authorization": `Bearer ${sessionToken}` } : undefined,
+      });
       const data = await res.json();
       if (res.ok && data.success && Array.isArray(data.data)) {
         setLogs(data.data);

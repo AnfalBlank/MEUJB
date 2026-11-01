@@ -98,6 +98,15 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("API POST /api/users error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API POST /api/users error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

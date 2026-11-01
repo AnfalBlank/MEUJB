@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/utils/apiMiddleware";
-import { client, ensureTablesAndSeed } from "@/db";
+import { client, insertAuditLog, ensureTablesAndSeed } from "@/db";
 import { Technician } from "@/types";
 
 export async function GET(req: Request) {
@@ -21,6 +21,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, count: technicians.length, data: technicians });
   } catch (error: any) {
     console.error("API GET /api/technicians error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API GET /api/technicians error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed fetching technicians" },
       { status: 500 }
@@ -43,6 +52,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, id, message: "Technician created in Turso" });
   } catch (error: any) {
     console.error("API POST /api/technicians error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API POST /api/technicians error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed creating technician" },
       { status: 500 }

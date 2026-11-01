@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/utils/apiMiddleware";
-import { client } from "@/db";
+import { client, insertAuditLog } from "@/db";
 
 export async function PATCH(
   req: Request,
@@ -25,6 +25,15 @@ export async function PATCH(
     return NextResponse.json({ success: true, message: `Status updated to ${status}` });
   } catch (error: any) {
     console.error("API PATCH /api/jobs/[id]/status error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API PATCH /api/jobs/[id]/status error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Failed updating status" },
       { status: 500 }

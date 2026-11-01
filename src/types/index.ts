@@ -101,7 +101,7 @@ export interface AuthUser {
   loggedInAt?: string;
 }
 
-export type AuditCategory = "AUTH" | "WORK_ORDER" | "TEAM" | "USER_MANAGEMENT" | "SYSTEM";
+export type AuditCategory = "AUTH" | "WORK_ORDER" | "TEAM" | "USER_MANAGEMENT" | "SYSTEM" | "DRIVE";
 
 export type AuditAction = 
   | "LOGIN"
@@ -118,7 +118,11 @@ export type AuditAction =
   | "UPDATE_USER"
   | "DELETE_USER"
   | "UPDATE_PROFILE"
-  | "INIT_SYSTEM";
+  | "INIT_SYSTEM"
+  | "SYSTEM_ERROR"
+  | "ACCESS_DENIED"
+  | "DRIVE_ERROR"
+  | "DB_ERROR";
 
 export interface AuditLogItem {
   id: string;

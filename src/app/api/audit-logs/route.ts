@@ -72,6 +72,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, count: logs.length, data: logs });
   } catch (error: any) {
     console.error("API GET /api/audit-logs error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API GET /api/audit-logs error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Gagal mengambil audit logs" },
       { status: 500 }
@@ -111,6 +120,15 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("API POST /api/audit-logs error:", error);
+    insertAuditLog({
+      username: "system",
+      userName: "System",
+      userRole: "system",
+      action: "SYSTEM_ERROR",
+      category: "SYSTEM",
+      details: `API POST /api/audit-logs error: ${error?.message || String(error)}`,
+    }).catch(() => {});
+    
     return NextResponse.json(
       { success: false, error: error.message || "Gagal menyimpan audit log" },
       { status: 500 }
