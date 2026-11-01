@@ -135,7 +135,7 @@ export function TeamView({
               onChange={(e) => setName(e.target.value)}
               required
               className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-              placeholder="e.g. Andi Pratama"
+              placeholder="Nama personil"
             />
           </div>
 

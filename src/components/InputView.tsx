@@ -21,7 +21,8 @@ import {
   UserPlus,
   Image as ImageIcon,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from "lucide-react";
 import { 
   WorkOrderJob, 
@@ -74,8 +75,6 @@ export function InputView({
       }
     });
     if (names.size === 0) {
-      names.add("Bagus Pratama");
-      names.add("Siska Amelia");
     }
     return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [teamMembers]);
@@ -194,7 +193,7 @@ export function InputView({
       // Generate default fresh document number
       const newNum = generateNextDocNumber("WO", "Fueling System Engineering", existingJobsCount);
       setDocNumber(newNum);
-      const defaultMkt = marketingList[0] || "Bagus Pratama";
+      const defaultMkt = marketingList[0] || "";
       setMarketing(defaultMkt);
       setIsManualMarketing(false);
       const todayStr = new Date().toISOString().split("T")[0];
@@ -405,7 +404,7 @@ export function InputView({
       id: initialJob ? initialJob.id : "job-" + Date.now(),
       docType,
       docNumber: docNumber.trim(),
-      marketing: marketing.trim() || "Bagus Pratama",
+      marketing: marketing.trim() || "",
       subdiv,
       customer: customer.trim(),
       desc: desc.trim(),
@@ -491,7 +490,7 @@ export function InputView({
               onChange={(e) => setDocNumber(e.target.value)}
               required
               className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-              placeholder="e.g. WO-EXT-2026-089"
+              placeholder="Contoh: WO-EXT-2026-001"
             />
           </div>
 
@@ -641,7 +640,7 @@ export function InputView({
               onChange={(e) => setCustomer(e.target.value)}
               required
               className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
-              placeholder="e.g. PT Pertamina Patra Niaga Regional JBB"
+              placeholder="Nama perusahaan customer"
             />
           </div>
 
@@ -1019,19 +1018,37 @@ export function InputView({
               </span>
             </div>
 
-            <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg cursor-pointer bg-white transition-colors">
-              <Upload className="w-5 h-5 text-slate-400 mb-1" />
-              <span className="text-xs font-semibold text-blue-600">Pilih Multi-Foto Lapangan</span>
-              <span className="text-[10px] text-slate-400 mt-0.5">Format JPG, PNG, WEBP</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="hidden"
-                disabled={isUploading}
-              />
-            </label>
+            <div className="flex gap-2">
+              {/* Upload dari galeri / file picker */}
+              <label className="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg cursor-pointer bg-white transition-colors">
+                <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                <span className="text-xs font-semibold text-blue-600">Pilih dari Galeri</span>
+                <span className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WEBP</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+              </label>
+
+              {/* Kamera langsung (mobile) */}
+              <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-blue-300 hover:border-blue-500 rounded-lg cursor-pointer bg-blue-50 hover:bg-blue-100 transition-colors min-w-[100px]">
+                <Camera className="w-5 h-5 text-blue-500 mb-1" />
+                <span className="text-xs font-semibold text-blue-600">Kamera</span>
+                <span className="text-[10px] text-blue-400 mt-0.5">Foto Langsung</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
+              </label>
+            </div>
 
             {photos.length > 0 && (
               <div className="flex flex-wrap gap-2">

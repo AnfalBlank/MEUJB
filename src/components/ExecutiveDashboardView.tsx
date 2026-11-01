@@ -327,120 +327,104 @@ export function ExecutiveDashboardView({
     <div className="space-y-6">
       
       {/* 1. Header Banner & Executive Controls */}
-      <div className="bg-slate-900 rounded-2xl border border-slate-800 text-white p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/10 rounded-xl p-1.5 backdrop-blur-xs border border-white/20 flex items-center justify-center shrink-0">
-              <Image
-                src="/logo.png"
-                alt="PT. Usaha Jayamas Bhakti"
-                width={50}
-                height={50}
-                className="object-contain"
-                priority
-              />
+      <div className="bg-slate-900 rounded-2xl border border-slate-800 text-white p-4 sm:p-5 shadow-sm">
+        {/* Title row */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-white/10 rounded-xl p-1 border border-white/20 flex items-center justify-center shrink-0">
+            <Image src="/logo.png" alt="Logo" width={36} height={36} className="object-contain" priority />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono uppercase">
+                Executive Cockpit
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono uppercase">
-                  Executive Cockpit & Analytics
-                </span>
-                <span className="text-slate-400 text-xs">• PT. Usaha Jayamas Bhakti</span>
-              </div>
-              <h1 className="text-lg sm:text-xl font-black tracking-wide text-white mt-1">
-                Executive Monitoring Operasional Teknik
-              </h1>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Evaluasi KPI strategis, tren bulanan volume WO/SPK, dan efisiensi pengeluaran kasbon & SPD
-              </p>
-            </div>
+            <h1 className="text-sm sm:text-base font-black tracking-wide text-white leading-tight">
+              Monitoring Operasional Teknik
+            </h1>
+          </div>
+        </div>
+
+        {/* Filter bar — responsive grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2">
+          {/* Periode Preset */}
+          <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs col-span-1">
+            <Calendar className="w-3.5 h-3.5 text-blue-400 mr-1.5 shrink-0" />
+            <select
+              value={periodPreset}
+              onChange={(e) => handlePresetChange(e.target.value)}
+              className="bg-transparent text-white font-semibold focus:outline-hidden cursor-pointer w-full"
+              title="Pilih Preset Periode"
+            >
+              <option value="ALL" className="bg-slate-900">Semua Periode</option>
+              <option value="THIS_MONTH" className="bg-slate-900">Bulan Ini</option>
+              <option value="LAST_MONTH" className="bg-slate-900">Bulan Lalu</option>
+              <option value="THIS_QUARTER" className="bg-slate-900">Kuartal Ini</option>
+              <option value="THIS_YEAR" className="bg-slate-900">Tahun Ini</option>
+              <option value="CUSTOM" className="bg-slate-900">Kustom...</option>
+            </select>
           </div>
 
-          {/* Filter Bar & Action Button */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Periode Preset Selector */}
-            <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
-              <Calendar className="w-3.5 h-3.5 text-blue-400 mr-1.5 shrink-0" />
-              <select
-                value={periodPreset}
-                onChange={(e) => handlePresetChange(e.target.value)}
-                className="bg-transparent text-white font-semibold focus:outline-hidden cursor-pointer"
-                title="Pilih Preset Periode"
-              >
-                <option value="ALL" className="bg-slate-900">Semua Periode</option>
-                <option value="THIS_MONTH" className="bg-slate-900">Bulan Ini</option>
-                <option value="LAST_MONTH" className="bg-slate-900">Bulan Lalu</option>
-                <option value="THIS_QUARTER" className="bg-slate-900">Kuartal Ini (Q)</option>
-                <option value="THIS_YEAR" className="bg-slate-900">Tahun Ini</option>
-                <option value="CUSTOM" className="bg-slate-900">Pilih Tanggal Bebas...</option>
-              </select>
-            </div>
+          {/* Sub-Divisi */}
+          <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs col-span-1">
+            <Layers className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" />
+            <select
+              value={selectedSubdiv}
+              onChange={(e) => setSelectedSubdiv(e.target.value)}
+              className="bg-transparent text-white font-semibold focus:outline-hidden cursor-pointer w-full"
+            >
+              <option value="ALL" className="bg-slate-900">Semua Divisi</option>
+              {ALL_SUB_DIVISIONS.map((s) => (
+                <option key={s} value={s} className="bg-slate-900">{s}</option>
+              ))}
+            </select>
+          </div>
 
-            {/* Input Rentang Tanggal (Dari & Sampai) */}
-            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Dari:</span>
+          {/* Date range — full width on mobile jika custom */}
+          {(periodPreset === "CUSTOM" || startDateFilter || endDateFilter) && (
+            <div className="col-span-2 sm:col-span-3 lg:col-span-1 flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs">
+              <span className="text-[10px] uppercase font-bold text-slate-400 shrink-0">Dari:</span>
               <input
                 type="date"
                 value={startDateFilter}
                 onChange={(e) => handleCustomDateChange(e.target.value, endDateFilter)}
-                className="bg-slate-900/90 border border-slate-600 rounded px-1.5 py-0.5 text-xs text-white focus:outline-hidden focus:border-blue-500 font-mono"
-                title="Pilih Tanggal Mulai Periode"
+                className="bg-slate-900/90 border border-slate-600 rounded px-1.5 py-0.5 text-xs text-white focus:outline-hidden focus:border-blue-500 font-mono flex-1 min-w-0"
               />
-              <span className="text-slate-400 text-[10px]">s/d</span>
+              <span className="text-slate-400 text-[10px] shrink-0">s/d</span>
               <input
                 type="date"
                 value={endDateFilter}
                 onChange={(e) => handleCustomDateChange(startDateFilter, e.target.value)}
-                className="bg-slate-900/90 border border-slate-600 rounded px-1.5 py-0.5 text-xs text-white focus:outline-hidden focus:border-blue-500 font-mono"
-                title="Pilih Tanggal Selesai Periode"
+                className="bg-slate-900/90 border border-slate-600 rounded px-1.5 py-0.5 text-xs text-white focus:outline-hidden focus:border-blue-500 font-mono flex-1 min-w-0"
               />
               {(startDateFilter || endDateFilter) && (
                 <button
                   type="button"
                   onClick={() => handlePresetChange("ALL")}
-                  className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition-colors ml-0.5 cursor-pointer"
-                  title="Reset Filter Tanggal (Tampilkan Semua)"
+                  className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-700 transition-colors shrink-0 cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3 text-slate-300" />
+                  <RotateCcw className="w-3 h-3" />
                 </button>
               )}
             </div>
+          )}
 
-            {/* Sub-Divisi Selector */}
-            <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs">
-              <Layers className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" />
-              <select
-                value={selectedSubdiv}
-                onChange={(e) => setSelectedSubdiv(e.target.value)}
-                className="bg-transparent text-white font-semibold focus:outline-hidden max-w-[130px] truncate cursor-pointer"
-              >
-                <option value="ALL" className="bg-slate-900">Semua Divisi</option>
-                {ALL_SUB_DIVISIONS.map((s) => (
-                  <option key={s} value={s} className="bg-slate-900">{s}</option>
-                ))}
-              </select>
-            </div>
+          {/* Action buttons */}
+          <button
+            onClick={() => onOpenCsvModal ? onOpenCsvModal(filteredJobs) : undefined}
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+            <span>CSV</span>
+          </button>
 
-            {/* Export CSV Button */}
-            <button
-              onClick={() => onOpenCsvModal ? onOpenCsvModal(filteredJobs) : undefined}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
-              title="Ekspor CSV rapi sesuai format Google Spreadsheet"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Ekspor CSV</span>
-            </button>
-
-            {/* Official Report Button */}
-            <button
-              onClick={() => onOpenReportModal ? onOpenReportModal(filteredJobs) : undefined}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs shrink-0 cursor-pointer"
-              title="Cetak Laporan PDF Resmi KOP PT. Usaha Jayamas Bhakti"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Cetak Laporan PDF</span>
-            </button>
-          </div>
+          <button
+            onClick={() => onOpenReportModal ? onOpenReportModal(filteredJobs) : undefined}
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5 shrink-0" />
+            <span>PDF</span>
+          </button>
         </div>
       </div>
 
@@ -552,7 +536,7 @@ export function ExecutiveDashboardView({
       </div>
 
       {/* 3. Interactive Charts Grid (Pie & Line Charts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Chart 1: Donut/Pie Chart Distribusi Sub-Divisi */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-between">
@@ -716,7 +700,7 @@ export function ExecutiveDashboardView({
       </div>
 
       {/* 4. Interactive Trend Line Charts (Volume & Keuangan Bulanan) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Line Chart 1: Tren Volume Pekerjaan Bulanan (WO vs SPK) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
@@ -740,8 +724,8 @@ export function ExecutiveDashboardView({
           </div>
 
           {/* SVG Line Chart */}
-          <div className="relative pt-2 pb-6">
-            <svg viewBox="0 0 600 200" className="w-full h-44 overflow-visible">
+          <div className="relative pt-2 pb-6 overflow-x-auto">
+            <svg viewBox="0 0 600 200" className="w-full min-w-[300px] h-44 overflow-visible">
               {/* Grid Lines */}
               {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
                 const y = 170 - ratio * 140;
@@ -897,8 +881,8 @@ export function ExecutiveDashboardView({
           </div>
 
           {/* SVG Line Chart */}
-          <div className="relative pt-2 pb-6">
-            <svg viewBox="0 0 600 200" className="w-full h-44 overflow-visible">
+          <div className="relative pt-2 pb-6 overflow-x-auto">
+            <svg viewBox="0 0 600 200" className="w-full min-w-[300px] h-44 overflow-visible">
               {/* Grid Lines */}
               {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
                 const y = 170 - ratio * 140;
@@ -1036,7 +1020,7 @@ export function ExecutiveDashboardView({
       </div>
 
       {/* 5. Executive Matrices: Leaderboard Marketing & Subdiv Efficiency */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Matrix 1: Kontribusi Marketing */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-3">

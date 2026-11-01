@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/utils/apiMiddleware";
 import { client } from "@/db";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
     const { status } = await req.json();

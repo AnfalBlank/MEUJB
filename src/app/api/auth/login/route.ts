@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { client, ensureTablesAndSeed, insertAuditLog } from "@/db";
+import { hashPassword, verifyPassword, createSessionToken } from "@/utils/auth";
 
 export async function POST(req: Request) {
   try {
@@ -18,81 +19,93 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "127.0.0.1";
     const userAgent = req.headers.get("user-agent") || "Browser";
 
-    // 1. Check in Turso database
+    // 1. Cari user di DB
     let dbUser: any = null;
     try {
       const res = await client.execute({
-        sql: "SELECT * FROM users WHERE LOWER(username) = ? OR LOWER(name) = ?",
-        args: [cleanUser, cleanUser],
+        sql: "SELECT * FROM users WHERE LOWER(username) = ?",
+        args: [cleanUser],
       });
-      if (res.rows.length > 0) {
-        dbUser = res.rows[0];
-      }
+      if (res.rows.length > 0) dbUser = res.rows[0];
     } catch (dbErr) {
-      console.warn("DB query failed in login, checking fallback", dbErr);
+      console.warn("DB query failed in login", dbErr);
     }
 
-    // 2. Validate password
-    let matched = false;
-    let authPayload: any = null;
-
-    if (dbUser) {
-      if (dbUser.password === cleanPass) {
-        matched = true;
-        authPayload = {
-          id: String(dbUser.id),
-          username: String(dbUser.username),
-          name: String(dbUser.name),
-          role: String(dbUser.role).toLowerCase(),
-          isRoot: Boolean(dbUser.is_root) || cleanUser === "admin" || cleanUser === "root",
-          loggedInAt: new Date().toISOString(),
-        };
-      }
-    } else {
-      // Fallback for default initial credentials if DB was offline or not yet populated
-      if (cleanUser === "admin" && cleanPass === "password") {
-        matched = true;
-        authPayload = {
-          id: "usr-admin-root",
-          username: "admin",
-          name: "Administrator Teknik",
-          role: "superadmin",
-          isRoot: true,
-          loggedInAt: new Date().toISOString(),
-        };
-      } else if (cleanUser === "prinof" && cleanPass === "password") {
-        matched = true;
-        authPayload = {
-          id: "usr-prinof",
-          username: "prinof",
-          name: "Prinof",
-          role: "manager",
-          isRoot: false,
-          loggedInAt: new Date().toISOString(),
-        };
-      }
-    }
-
-    if (!matched || !authPayload) {
-      // Log failed login attempt
+    // 2. Fallback hardcoded jika DB offline (hanya untuk initial setup)
+    if (!dbUser) {
       await insertAuditLog({
         username: cleanUser,
         userName: cleanUser,
         userRole: "unauthenticated",
         action: "LOGIN_FAILED",
         category: "AUTH",
-        details: `Percobaan login gagal untuk username: "${cleanUser}"`,
+        details: `Percobaan login gagal - user tidak ditemukan: "${cleanUser}"`,
         ipAddress: ip,
         userAgent,
       });
-
       return NextResponse.json(
-        { success: false, error: "Username atau password salah. Silakan periksa kembali." },
+        { success: false, error: "Username atau password salah." },
         { status: 401 }
       );
     }
 
-    // 3. Update last login & create audit log
+    // 3. Verifikasi password (support bcrypt & plaintext lama)
+    const passwordMatch = await verifyPassword(cleanPass, String(dbUser.password));
+
+    if (!passwordMatch) {
+      await insertAuditLog({
+        username: cleanUser,
+        userName: String(dbUser.name),
+        userRole: String(dbUser.role),
+        action: "LOGIN_FAILED",
+        category: "AUTH",
+        details: `Percobaan login gagal - password salah untuk user: "${cleanUser}"`,
+        ipAddress: ip,
+        userAgent,
+      });
+      return NextResponse.json(
+        { success: false, error: "Username atau password salah." },
+        { status: 401 }
+      );
+    }
+
+    // 4. Jika password masih plaintext, upgrade ke bcrypt sekarang
+    if (!String(dbUser.password).startsWith("$2")) {
+      try {
+        const hashed = await hashPassword(cleanPass);
+        await client.execute({
+          sql: "UPDATE users SET password = ?, updated_at = ? WHERE id = ?",
+          args: [hashed, new Date().toISOString(), dbUser.id],
+        });
+      } catch (upgradeErr) {
+        console.warn("Password upgrade to bcrypt failed:", upgradeErr);
+      }
+    }
+
+    const isRoot =
+      Boolean(dbUser.is_root) ||
+      cleanUser === "admin" ||
+      cleanUser === "root";
+
+    const authPayload = {
+      id: String(dbUser.id),
+      username: String(dbUser.username),
+      name: String(dbUser.name),
+      role: String(dbUser.role).toLowerCase(),
+      isRoot,
+      loggedInAt: new Date().toISOString(),
+    };
+
+    // 5. Buat session token
+    const sessionToken = createSessionToken({
+      userId: authPayload.id,
+      username: authPayload.username,
+      name: authPayload.name,
+      role: authPayload.role,
+      isRoot: authPayload.isRoot,
+    });
+
+    // 6. Update last login
     const now = new Date().toISOString();
     try {
       await client.execute({
@@ -108,7 +121,7 @@ export async function POST(req: Request) {
       userRole: authPayload.role,
       action: "LOGIN",
       category: "AUTH",
-      details: `User ${authPayload.name} (@${authPayload.username}) berhasil login ke sistem`,
+      details: `User ${authPayload.name} (@${authPayload.username}) berhasil login`,
       ipAddress: ip,
       userAgent,
     });
@@ -116,6 +129,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       user: authPayload,
+      sessionToken,
       message: "Login berhasil",
     });
   } catch (error: any) {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/utils/apiMiddleware";
 import { client } from "@/db";
 import { Technician } from "@/types";
 
@@ -6,6 +7,8 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
     const body: Technician = await req.json();
@@ -29,6 +32,8 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
 

@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       yearFolderId
     );
 
-    // 3. Level 3: Folder Proyek misal [WO-WO-EXT-2026-089] PT Pertamina Patra Niaga
+    // 3. Level 3: Folder Proyek misal [WO-EXT-2026-001] PT Customer
     const projectFolderName = `[${docType}-${docNumber}] ${customer}`;
     const projectFolderId = await getOrCreateFolder(
       driveClient,

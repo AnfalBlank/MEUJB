@@ -1,7 +1,7 @@
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
-import { INITIAL_JOBS, INITIAL_TECHNICIANS, MAIN_SUB_DIVISIONS } from "@/data/initialData";
+import { MAIN_SUB_DIVISIONS } from "@/data/initialData";
 
 const url = process.env.TURSO_DATABASE_URL || "libsql://internalmesystem-anfal.aws-ap-northeast-1.turso.io";
 const authToken = process.env.TURSO_AUTH_TOKEN || "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTMxNzI5MTQsImlkIjoiMDFhMTgxNmYtMjgwMS03OGM3LWIwMjgtNzgxYWMxNmM1NzgyIiwia2lkIjoieXlnVk1sWlY0R2p6ZXJ2YW1RYUNIUEhNT1R5VVFjWDZTNUZZUk9zVkU1cyIsInJpZCI6IjgyYzYwZmNiLWRmZjgtNGNkMS1hZDFhLWVkYWZiMGJmOWUzZiJ9.XV6b_KBY1kKTlXogIZux0Ad-yQ39I0x2jNU36zGLyGj09Igrm-rYk3Yxse-ObWMXuW1wEDLTAhSTiwO7CkcxDg";
@@ -149,17 +149,6 @@ export async function ensureTablesAndSeed() {
       }
     }
 
-    // 3. Seed initial technicians if empty
-    const techCheck = await client.execute("SELECT count(*) as cnt FROM technicians");
-    if (Number(techCheck.rows[0]?.cnt || 0) === 0) {
-      for (const t of INITIAL_TECHNICIANS) {
-        await client.execute({
-          sql: "INSERT OR IGNORE INTO technicians (id, name, phone, role, subdiv) VALUES (?, ?, ?, ?, ?)",
-          args: [t.id, t.name, t.phone, t.role, t.subdiv]
-        });
-      }
-    }
-
     // 4. Seed initial users if empty
     const userCheck = await client.execute("SELECT count(*) as cnt FROM users");
     if (Number(userCheck.rows[0]?.cnt || 0) === 0) {
@@ -177,49 +166,6 @@ export async function ensureTablesAndSeed() {
               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         args: ["usr-prinof", "prinof", "password", "Prinof", "manager", 0, now, now]
       });
-    }
-
-    // 5. Seed initial jobs if empty
-    const jobCheck = await client.execute("SELECT count(*) as cnt FROM work_orders");
-    if (Number(jobCheck.rows[0]?.cnt || 0) === 0) {
-      for (const j of INITIAL_JOBS) {
-        await client.execute({
-          sql: `INSERT OR IGNORE INTO work_orders (
-            id, doc_type, doc_number, marketing_name, customer_name, subdiv,
-            description, target_duration, execution_date, start_date, target_date, status, status_note,
-            actual_expense, ba_drive_url, ba_file_name, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            j.id, j.docType, j.docNumber, j.marketing, j.customer, j.subdiv,
-            j.desc, j.target, j.date, j.startDate || j.date, j.targetDate || j.date, j.status, j.statusNote || "",
-            j.kasbonUsed || 0, j.baLink || "", j.baFileName || "",
-            j.createdAt || new Date().toISOString(), j.updatedAt || new Date().toISOString()
-          ]
-        });
-
-        // Seed assignees
-        for (const t of j.techs) {
-          await client.execute({
-            sql: "INSERT INTO work_order_assignees (id, work_order_id, technician_id, name, subdiv, kasbon_amount) VALUES (?, ?, ?, ?, ?, ?)",
-            args: ["asg-" + Math.random().toString(36).substr(2, 9), j.id, t.technicianId || null, t.name, t.subdiv, t.kasbon || 0]
-          });
-        }
-
-        // Seed SPD
-        const totalSpd = j.spdType === "Proyek" ? 0 : (j.spdDays * j.spdDaily) + (j.spdNights * j.spdHotel);
-        await client.execute({
-          sql: "INSERT INTO spd_expenses (id, work_order_id, category, days, daily_rate, nights, hotel_rate, total_spd) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-          args: ["spd-" + Math.random().toString(36).substr(2, 9), j.id, j.spdType, j.spdDays || 0, j.spdDaily || 0, j.spdNights || 0, j.spdHotel || 0, totalSpd]
-        });
-
-        // Seed Photos
-        for (const p of j.photos || []) {
-          await client.execute({
-            sql: "INSERT INTO work_order_photos (id, work_order_id, file_name, drive_view_url, caption, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            args: [p.id, j.id, p.fileName, p.driveUrl, p.caption || "", p.uploadedAt || new Date().toISOString()]
-          });
-        }
-      }
     }
 
     return { success: true };

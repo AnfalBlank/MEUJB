@@ -17,7 +17,7 @@ import {
 import { AuthUser } from "@/types";
 
 interface LoginFormProps {
-  onLogin: (user: AuthUser) => void;
+  onLogin: (user: AuthUser, token?: string) => void;
 }
 
 export function LoginForm({ onLogin }: LoginFormProps) {
@@ -51,7 +51,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
       const data = await res.json();
 
       if (res.ok && data.success && data.user) {
-        onLogin(data.user);
+        onLogin(data.user, data.sessionToken);
       } else {
         setError(data.error || "Username atau password salah. Silakan periksa kembali.");
         setIsLoading(false);

@@ -17,11 +17,11 @@ export interface DriveConfigStatus {
 }
 
 export function getOAuthRedirectUri(originOverride?: string): string {
-  if (originOverride) {
-    return `${originOverride.replace(/\/$/, "")}/api/drive/callback`;
-  }
   if (process.env.GOOGLE_REDIRECT_URI) {
     return process.env.GOOGLE_REDIRECT_URI;
+  }
+  if (originOverride) {
+    return `${originOverride.replace(/\/$/, "")}/api/drive/callback`;
   }
   return "http://localhost:3001/api/drive/callback";
 }

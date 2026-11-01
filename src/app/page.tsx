@@ -19,11 +19,11 @@ import { UserManagementModal } from "@/components/UserManagementModal";
 import { AuditLogView } from "@/components/AuditLogView";
 import { DriveGuideModal } from "@/components/DriveGuideModal";
 import { WorkOrderJob, Technician, SubDivision, JobStatus, AuthUser } from "@/types";
-import { INITIAL_JOBS, INITIAL_TECHNICIANS } from "@/data/initialData";
 
 const JOBS_STORAGE_KEY = "me_engineering_jobs_v1";
 const TEAM_STORAGE_KEY = "me_engineering_team_v1";
 const AUTH_USER_KEY = "me_auth_user";
+const SESSION_TOKEN_KEY = "me_session_token";
 const LAST_ACTIVITY_KEY = "me_last_activity_timestamp";
 const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 Jam (7.200.000 ms)
 
@@ -31,11 +31,13 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"dashboard" | "executive" | "input" | "team" | "audit">("dashboard");
-  const [jobs, setJobs] = useState<WorkOrderJob[]>(INITIAL_JOBS);
-  const [teamMembers, setTeamMembers] = useState<Technician[]>(INITIAL_TECHNICIANS);
+  const [jobs, setJobs] = useState<WorkOrderJob[]>([]);
+  const [teamMembers, setTeamMembers] = useState<Technician[]>([]);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [dbLatency, setDbLatency] = useState<number | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
   const isSuperAdmin = Boolean(
     currentUser?.role?.toLowerCase().replace(/[\s_-]/g, "") === "superadmin" ||
@@ -93,6 +95,15 @@ export default function HomePage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // Helper: sertakan session token di setiap request API
+  const getAuthHeaders = (): HeadersInit => {
+    const token = sessionToken || (typeof window !== "undefined" ? localStorage.getItem(SESSION_TOKEN_KEY) : null);
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    };
+  };
+
   // 1. Fetch from Turso Cloud DB
   const fetchTursoData = useCallback(async (isManual = false) => {
     setIsSyncing(true);
@@ -100,14 +111,16 @@ export default function HomePage() {
 
     try {
       // Check Turso status & latency
-      const statusRes = await fetch("/api/db/status");
+      const token = sessionToken || (typeof window !== "undefined" ? localStorage.getItem(SESSION_TOKEN_KEY) : null) || "";
+      const authH: HeadersInit = token ? { "Authorization": `Bearer ${token}` } : {};
+      const statusRes = await fetch("/api/db/status", { headers: authH });
       if (statusRes.ok) {
         const sData = await statusRes.json();
         setDbLatency(sData.latencyMs || (Date.now() - start));
       }
 
       // Fetch Jobs
-      const jobsRes = await fetch("/api/jobs");
+      const jobsRes = await fetch("/api/jobs", { headers: authH });
       if (jobsRes.ok) {
         const jData = await jobsRes.json();
         if (jData.success && Array.isArray(jData.data) && jData.data.length > 0) {
@@ -119,7 +132,7 @@ export default function HomePage() {
       }
 
       // Fetch Technicians
-      const techRes = await fetch("/api/technicians");
+      const techRes = await fetch("/api/technicians", { headers: authH });
       if (techRes.ok) {
         const tData = await techRes.json();
         if (tData.success && Array.isArray(tData.data) && tData.data.length > 0) {
@@ -130,6 +143,7 @@ export default function HomePage() {
         }
       }
 
+      setLastUpdatedAt(new Date());
       if (isManual) {
         addToast("Sinkronisasi Turso Cloud DB berhasil!", "success");
       }
@@ -229,6 +243,20 @@ export default function HomePage() {
     };
   }, [currentUser]);
 
+
+  // ── Point 8: Polling real-time setiap 30 detik ──────────────────────────
+  useEffect(() => {
+    if (!currentUser) return; // hanya polling jika sudah login
+    const POLL_INTERVAL = 30_000; // 30 detik
+    const intervalId = setInterval(() => {
+      // Jangan polling jika sedang syncing manual atau tab tidak aktif
+      if (!document.hidden) {
+        fetchTursoData(false);
+      }
+    }, POLL_INTERVAL);
+    return () => clearInterval(intervalId);
+  }, [currentUser, fetchTursoData]);
+
   // Save to LocalStorage cache whenever state changes
   useEffect(() => {
     if (!isHydrated) return;
@@ -313,7 +341,7 @@ export default function HomePage() {
       const method = isEdit ? "PUT" : "POST";
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(jobToSave),
       });
 
@@ -355,7 +383,7 @@ export default function HomePage() {
 
         // Delete from Turso Cloud
         try {
-          await fetch(`/api/jobs/${encodeURIComponent(id)}`, { method: "DELETE" });
+          await fetch(`/api/jobs/${encodeURIComponent(id)}`, { method: "DELETE", headers: getAuthHeaders() });
         } catch (err) {
           console.error("Turso delete error:", err);
         }
@@ -382,7 +410,7 @@ export default function HomePage() {
     try {
       await fetch(`/api/jobs/${encodeURIComponent(id)}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
     } catch (err) {
@@ -395,7 +423,7 @@ export default function HomePage() {
       id: "job-" + Date.now(),
       docType: "WO",
       docNumber: "",
-      marketing: "Bagus Pratama",
+      marketing: "",
       subdiv,
       customer: "",
       desc: "",
@@ -458,7 +486,7 @@ export default function HomePage() {
       const method = isEdit ? "PUT" : "POST";
       await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(memberToSave),
       });
     } catch (err) {
@@ -488,7 +516,7 @@ export default function HomePage() {
         );
 
         try {
-          await fetch(`/api/technicians/${encodeURIComponent(id)}`, { method: "DELETE" });
+          await fetch(`/api/technicians/${encodeURIComponent(id)}`, { method: "DELETE", headers: getAuthHeaders() });
         } catch (err) {
           console.error("Turso member delete error:", err);
         }
@@ -561,8 +589,8 @@ export default function HomePage() {
       message: "Seluruh data lokal akan dikembalikan ke data awal sistem ME Engineering. Tindakan ini akan menggantikan perubahan yang belum diekspor.",
       confirmLabel: "Ya, Kembalikan Data Standar",
       onConfirm: () => {
-        setJobs(INITIAL_JOBS);
-        setTeamMembers(INITIAL_TECHNICIANS);
+        setJobs([]);
+        setTeamMembers([]);
         localStorage.removeItem(JOBS_STORAGE_KEY);
         localStorage.removeItem(TEAM_STORAGE_KEY);
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -582,14 +610,28 @@ export default function HomePage() {
     await handleSaveMember(newMember);
   };
 
-  const handleLogin = (user: AuthUser) => {
+  const handleLogin = (user: AuthUser, token?: string) => {
+    // Clear stale cache dari user/session sebelumnya
+    try {
+      localStorage.removeItem(JOBS_STORAGE_KEY);
+      localStorage.removeItem(TEAM_STORAGE_KEY);
+    } catch {}
+    // Reset state agar tidak tampil data lama
+    setJobs([]);
+    setTeamMembers([]);
     setCurrentUser(user);
+    if (token) {
+      setSessionToken(token);
+      try { localStorage.setItem(SESSION_TOKEN_KEY, token); } catch {}
+    }
     setActiveTab("dashboard");
     try {
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
       localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
     } catch {}
     addToast(`Selamat datang kembali, ${user.name}!`, "success");
+    // Fetch fresh data dari Turso
+    fetchTursoData();
   };
 
   const handleLogout = () => {
@@ -609,10 +651,16 @@ export default function HomePage() {
         }
 
         setCurrentUser(null);
+        setSessionToken(null);
         setActiveTab("dashboard");
+        setJobs([]);
+        setTeamMembers([]);
         try {
           localStorage.removeItem(AUTH_USER_KEY);
+          localStorage.removeItem(SESSION_TOKEN_KEY);
           localStorage.removeItem(LAST_ACTIVITY_KEY);
+          localStorage.removeItem(JOBS_STORAGE_KEY);
+          localStorage.removeItem(TEAM_STORAGE_KEY);
         } catch {}
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         addToast("Anda telah berhasil keluar dari sistem.", "info");
@@ -658,10 +706,11 @@ export default function HomePage() {
         onOpenProfileSettings={() => setIsUserProfileModalOpen(true)}
         onOpenUserManagement={() => setIsUserManagementModalOpen(true)}
         onOpenDriveSettings={() => setIsDriveModalOpen(true)}
+        lastUpdatedAt={lastUpdatedAt}
       />
 
       {/* 2. Main Content Body - Fluid, Proportional Width */}
-      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 xl:px-10 py-5">
+      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 xl:px-10 py-2 sm:py-5 pb-24 sm:pb-6">
         {activeTab === "dashboard" && (
           <DashboardView
             jobs={jobs}
@@ -732,7 +781,7 @@ export default function HomePage() {
       </main>
 
       {/* 3. Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-4">
+      <footer className="hidden sm:block bg-slate-900 border-t border-slate-800 text-slate-400 text-xs py-4">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-300">Sistem Monitoring Operasional Teknik</span>

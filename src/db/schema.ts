@@ -20,7 +20,7 @@ export const technicians = sqliteTable("technicians", {
 export const workOrders = sqliteTable("work_orders", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   docType: text("doc_type").notNull(), // WO | SPK
-  docNumber: text("doc_number").notNull().unique(), // e.g. WO-EXT-2026-089
+  docNumber: text("doc_number").notNull().unique(), // e.g. WO-EXT-2026-001
   marketingName: text("marketing_name").notNull(),
   customerName: text("customer_name").notNull(),
   subdiv: text("subdiv").notNull(),

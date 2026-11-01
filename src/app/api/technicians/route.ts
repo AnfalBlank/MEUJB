@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/utils/apiMiddleware";
 import { client, ensureTablesAndSeed } from "@/db";
 import { Technician } from "@/types";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     await ensureTablesAndSeed();
 
@@ -26,6 +29,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     const body: Technician = await req.json();
     const id = body.id || "tech-" + Date.now();

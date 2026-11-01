@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/utils/apiMiddleware";
 import { client, ensureTablesAndSeed, insertAuditLog } from "@/db";
 import { AuditLogItem } from "@/types";
 
 export async function GET(req: Request) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     await ensureTablesAndSeed();
     const { searchParams } = new URL(req.url);
@@ -77,6 +80,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const auth = requireAuth(req);
+  if (!auth.ok) return auth.response;
   try {
     await ensureTablesAndSeed();
     const body = await req.json();
